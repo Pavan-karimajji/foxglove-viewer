@@ -56,10 +56,16 @@ export const EGO_MODEL_NATIVE_WIDTH_M = 1.5;
 export const EGO_MODEL_NATIVE_HEIGHT_M = 1.3;
 /** Lowest point of the model on its up axis (the wheel bottoms); 0 means its origin is on the ground. */
 export const EGO_MODEL_NATIVE_MIN_UP_M = 0;
-/** One uniform scale: the drawn model is EGO_LENGTH_M long. */
-export const EGO_MODEL_SCALE = EGO_LENGTH_M / EGO_MODEL_NATIVE_LENGTH_M;
+/** Middle of the model along its forward axis (glTF Z), from the same measurement: not at the origin. */
+export const EGO_MODEL_NATIVE_CENTRE_FORWARD_M = -0.025;
+/** Roof height the drawn car should have (a passenger car, not the model's own 1.3 m x length scale). */
+export const EGO_HEIGHT_TARGET_M = 1.5;
+// One factor per axis, so the drawn car is EGO_LENGTH_M x EGO_WIDTH_M x EGO_HEIGHT_TARGET_M.
+export const EGO_MODEL_SCALE_LENGTH = EGO_LENGTH_M / EGO_MODEL_NATIVE_LENGTH_M;
+export const EGO_MODEL_SCALE_WIDTH = EGO_WIDTH_M / EGO_MODEL_NATIVE_WIDTH_M;
+export const EGO_MODEL_SCALE_HEIGHT = EGO_HEIGHT_TARGET_M / EGO_MODEL_NATIVE_HEIGHT_M;
 /** Roof height of the drawn model; the ego speed text sits above this. */
-export const EGO_HEIGHT_M = EGO_MODEL_NATIVE_HEIGHT_M * EGO_MODEL_SCALE;
+export const EGO_HEIGHT_M = EGO_MODEL_NATIVE_HEIGHT_M * EGO_MODEL_SCALE_HEIGHT;
 /**
  * Yaw that turns the model's forward (glTF +Z) onto ego +x. The 3D panel's default mesh up axis
  * ("y_up") already stands a glTF upright (+Y -> +z, +Z -> -y), so what is left is a quarter turn about z.

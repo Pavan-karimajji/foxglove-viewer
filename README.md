@@ -20,12 +20,12 @@ speed plot, both drawn by Foxglove itself.
 - [ ] **Timestamp format in seconds.** Same page, *Visualization timestamp
   format -> Seconds*, so the time bar shows `11.7` rather than a 1970 date.
 - [ ] **`demo_layout` imported and selected** (see below).
-- [ ] **Extension version 0.2.0** shown under *profile menu -> Extensions*.
+- [ ] **Extension version 0.2.1** shown under *profile menu -> Extensions*.
 
 ## Set up the demo laptop (once)
 
 1. **Install Foxglove desktop** from <https://foxglove.dev/download> and sign in.
-2. **Install the extension.** Drag `adas.foxglove-viewer-0.2.0.foxe` onto the
+2. **Install the extension.** Drag `adas.foxglove-viewer-0.2.1.foxe` onto the
    Foxglove window. Check it under *profile menu (top right) -> Extensions*:
    "ADAS Foxglove Viewer" should be listed.
    - **Updating to a new `.foxe`?** First remove the old one: *Extensions ->

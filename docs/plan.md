@@ -83,10 +83,12 @@ disappear vanish. `lifetime` is 0 and `frame_locked` is true.
 | Velocity arrow | `arrows[]` from the box centre, direction `atan2(vabs_y, vabs_x)`, shaft length `speed × ARROW_S_PER_MPS (0.5)`, capped at `ARROW_MAX_M = 15`; omitted below `ARROW_MIN_MPS = 0.5` | `kinematic.vabs_x/vabs_y` (absolute velocity, already in ego axes) |
 | Label | `texts[]`, billboard, above the box: `"<CLASS> #<local_id>  <km/h>"` | `classification`, `local_id`, `vabs` |
 
-Plus one **ego car** cube in the same entity: `EGO_LENGTH_M = 4.5`,
-`EGO_WIDTH_M = 1.8`, centre `(EGO_CENTRE_X_M = 1.35, 0, OBJECT_HEIGHT_M/2)`,
-in a distinct colour. These are display constants; take them from
-`ego_params.yaml` later (§7).
+Plus one **ego car** in the same entity: a `ModelPrimitive` (3D car model
+`assets/ego_car.glb`, CC0, see `assets/ASSETS.md`, bundled in the extension, decoded once)
+centred on `EGO_CENTRE_X_M = 1.35`, scaled per axis to `EGO_LENGTH_M = 4.5` x
+`EGO_WIDTH_M = 1.8` x `EGO_HEIGHT_TARGET_M = 1.5`. Foxglove applies the scale after its Y-up to
+Z-up conversion, so `scale.x` = width, `.y` = length, `.z` = height. These are display
+constants; take them from `ego_params.yaml` later (§7).
 
 ### 4.2 `RoadModel` → `foxglove.SceneUpdate`
 

@@ -20,7 +20,7 @@ describe("convertEgo", () => {
     expect(e.timestamp).toEqual({ sec: 1, nsec: 2 });
     expect(e.texts).toHaveLength(1);
     expect(e.texts[0]!.text).toBe("36 km/h");
-    expect(e.texts[0]!.pose.position).toEqual({ x: 1.35, y: 0, z: 1.3 * (4.5 / 2.55) + 0.4 }); // above the roof of the scaled car model
+    expect(e.texts[0]!.pose.position).toEqual({ x: 1.35, y: 0, z: 1.5 + 0.4 }); // 0.4 m above the 1.5 m roof of the scaled car model
   });
 
   it("0 m/s -> '0 km/h'", () => {

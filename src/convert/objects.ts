@@ -121,9 +121,17 @@ function addObject(entity: SceneEntity, obj: DfObj): void {
 export function convertObjects(msg: DfObjList, receiveTime: Time): SceneUpdate {
   const entity = emptyEntity("objects", receiveTime);
 
+  // Foxglove stands a glTF upright (Y-up -> Z-up) INSIDE the model and applies `scale` to the result, then the
+  // pose: so scale.x = width (glTF X), scale.y = length (glTF Z, now -y), scale.z = height (glTF Y, now z).
+  // Not the glTF's own axes: read from the 3D panel's model code and confirmed in Foxglove (top view, 4.5 x 1.8 m).
   entity.models.push({
-    pose: pose(S.EGO_CENTRE_X_M, 0, 0 - S.EGO_MODEL_NATIVE_MIN_UP_M * S.EGO_MODEL_SCALE, S.EGO_MODEL_YAW_RAD),
-    scale: { x: S.EGO_MODEL_SCALE, y: S.EGO_MODEL_SCALE, z: S.EGO_MODEL_SCALE },
+    pose: pose(
+      S.EGO_CENTRE_X_M - S.EGO_MODEL_NATIVE_CENTRE_FORWARD_M * S.EGO_MODEL_SCALE_LENGTH,
+      0,
+      0 - S.EGO_MODEL_NATIVE_MIN_UP_M * S.EGO_MODEL_SCALE_HEIGHT,
+      S.EGO_MODEL_YAW_RAD,
+    ),
+    scale: { x: S.EGO_MODEL_SCALE_WIDTH, y: S.EGO_MODEL_SCALE_LENGTH, z: S.EGO_MODEL_SCALE_HEIGHT },
     color: S.EGO_MODEL_UNUSED_COLOR,
     override_color: false,
     url: "",

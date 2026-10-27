@@ -2,6 +2,11 @@
 
 `npm run package` refuses to build a `.foxe` without this file.
 
+## 0.2.1
+
+- The ego car model is scaled per axis to 4.5 m long, 1.8 m wide and 1.5 m high (0.2.0 scaled it evenly to a too wide, too tall 2.65 x 2.3 m), and centred on the ego centre.
+- The ego speed text sits 0.4 m above the new 1.5 m roof.
+
 ## 0.2.0
 
 - The ego vehicle is drawn as a 3D car model (CC0, `assets/ASSETS.md`) instead of a box, bundled inside the extension.

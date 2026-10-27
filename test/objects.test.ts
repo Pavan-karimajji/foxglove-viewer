@@ -46,19 +46,35 @@ describe("convertObjects", () => {
     expect(e.texts).toHaveLength(0);
   });
 
-  it("ego model: glb media type, own colours, centre x, on the ground, scaled to EGO_LENGTH_M", () => {
+  it("ego model: glb media type, own colours, centred on EGO_CENTRE_X_M, on the ground", () => {
     const m = entityOf(list([])).models[0]!;
     expect(m.media_type).toBe("model/gltf-binary");
     expect(m.override_color).toBe(false);
     expect(m.url).toBe("");
-    expect(m.pose.position.x).toBe(S.EGO_CENTRE_X_M);
+    // The model's middle is 0.025 m behind its origin (before scale), so the origin moves forward by that much.
+    expect(m.pose.position.x).toBeCloseTo(1.35 + 0.025 * (4.5 / 2.55), 9);
     expect(m.pose.position.y).toBe(0);
     expect(m.pose.position.z).toBe(0);
-    expect(m.scale.x).toBe(S.EGO_LENGTH_M / S.EGO_MODEL_NATIVE_LENGTH_M);
-    expect(m.scale.x).toBeCloseTo(1.7647059, 6); // 4.5 / 2.55
-    expect(m.scale).toEqual({ x: m.scale.x, y: m.scale.x, z: m.scale.x }); // uniform
     expect(m.pose.orientation.z).toBeCloseTo(0.7071, 4); // quarter turn about z: model forward -> +x
     expect(m.pose.orientation.w).toBeCloseTo(0.7071, 4);
+  });
+
+  it("ego model scale per axis: x = width, y = length, z = height (Foxglove applies it after Y-up -> Z-up)", () => {
+    const s = entityOf(list([])).models[0]!.scale;
+    expect(s.x).toBe(S.EGO_WIDTH_M / S.EGO_MODEL_NATIVE_WIDTH_M);
+    expect(s.y).toBe(S.EGO_LENGTH_M / S.EGO_MODEL_NATIVE_LENGTH_M);
+    expect(s.z).toBe(S.EGO_HEIGHT_TARGET_M / S.EGO_MODEL_NATIVE_HEIGHT_M);
+    expect(s.x).toBeCloseTo(1.2, 9); // 1.8 / 1.5
+    expect(s.y).toBeCloseTo(1.7647059, 6); // 4.5 / 2.55
+    expect(s.z).toBeCloseTo(1.1538462, 6); // 1.5 / 1.3
+    // The drawn car: 1.5 m x 2.55 m x 1.3 m native -> 1.8 m wide, 4.5 m long, 1.5 m high.
+    expect(1.5 * s.x).toBeCloseTo(1.8, 9);
+    expect(2.55 * s.y).toBeCloseTo(4.5, 9);
+    expect(1.3 * s.z).toBeCloseTo(1.5, 9);
+  });
+
+  it("ego model bytes are a glb", () => {
+    const m = entityOf(list([])).models[0]!;
     expect(m.data.length).toBeGreaterThan(100_000);
     expect(String.fromCharCode(...m.data.slice(0, 4))).toBe("glTF");
   });
