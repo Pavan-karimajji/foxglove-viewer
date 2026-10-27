@@ -255,8 +255,25 @@ Do not commit.
 
 ## 9. Findings (filled in during S-1..S-4)
 
-- Field-name casing as decoded: _tbd (S-1)_
-- Enums arrive as: _tbd (S-1)_
-- 64-bit fields arrive as: _tbd (S-1)_
-- Exact `registerMessageConverter` signature used: _tbd (S-1)_
-- Frame / display-frame notes: _tbd (S-1)_
+Observed in Foxglove desktop on `bsd_passby_dv16.mcap` (2026-10-27).
+
+- Field-name casing as decoded: **snake_case**, as in the `.proto`
+  (`num_of_used_objects`, `kinematic.dist_x`). No camelCase fallback is needed.
+- Enums arrive as: **numbers** (`attributes.classification: 1` for CAR).
+- 64-bit fields arrive as: **`bigint`** (`sig_header.source_timestamp_us`).
+  Scalar defaults are filled in (`0`); an unset proto3 `optional`
+  (`capture_timestamp_us`) is absent.
+- Exact `registerMessageConverter` signature used (`@foxglove/extension` 2.59.0):
+  `{ type: "schema", fromSchemaName, toSchemaName, converter: (msg: Src, event: Immutable<MessageEvent<Src>>) => unknown }`.
+  Entity timestamp = `event.receiveTime` (`{ sec, nsec }`).
+- Frame / display-frame notes: the 3D panel opens with display frame
+  `chase_camera` (from the image topic), and the `objects` topic shows an
+  error badge there because nothing links `ego` to `chase_camera`. With
+  display frame `ego` the badge clears and the boxes draw.
+- The Problems tab always shows `truth/actors (channel 5): Expected "type": "object"`.
+  That topic's JSON schema is not an object at the top level. The viewer does not use it (§3).
+- Packaging: `npm run package` refuses to run without `CHANGELOG.md`, so the file stays.
+  The template's `pretest` script (`foxglove-extension pretest`) is not a command in
+  `create-foxglove-extension` 1.3.2, so it was removed and `npm test` runs vitest.
+- Installing a `.foxe` from a script: Settings -> Extensions has a hidden
+  `<input type=file accept=".foxe">`. Dropping a file on the window also works on the player page.

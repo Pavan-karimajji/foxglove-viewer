@@ -1,0 +1,35 @@
+{
+  "name": "foxglove-viewer",
+  "displayName": "ADAS Foxglove Viewer",
+  "description": "Shows perceived objects and lane lines from mcap recordings in the 3D panel.",
+  "publisher": "adas",
+  "homepage": "",
+  "version": "0.0.0",
+  "license": "UNLICENSED",
+  "main": "./dist/extension.js",
+  "keywords": [],
+  "scripts": {
+    "build": "foxglove-extension build",
+    "foxglove:prepublish": "foxglove-extension build --mode production",
+    "lint": "eslint .",
+    "lint:ci": "eslint .",
+    "lint:fix": "eslint --fix .",
+    "local-install": "foxglove-extension install",
+    "package": "foxglove-extension package",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@foxglove/eslint-plugin": "2.1.2",
+    "@foxglove/extension": "2.59.0",
+    "@foxglove/schemas": "2.3.1",
+    "@types/react": "18.3.31",
+    "@types/react-dom": "18.3.7",
+    "create-foxglove-extension": "1.3.2",
+    "eslint": "9.39.5",
+    "prettier": "3.9.10",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "typescript": "5.9.3",
+    "vitest": "3.2.4"
+  }
+}
