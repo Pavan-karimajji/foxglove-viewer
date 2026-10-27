@@ -2,6 +2,10 @@
 
 `npm run package` refuses to build a `.foxe` without this file.
 
+## 0.3.1
+
+- The object label shows the class confidence when the sender filled it (above 0), as the raw number: `PEDESTRIAN conf 87  #3  5 km/h`. Its unit is unconfirmed, so there is no percent sign. A 0 or absent confidence leaves the label as before.
+
 ## 0.3.0
 
 - Objects are drawn as 3D models per class: car, truck, pedestrian, and motorcycle with a rider (CC0, `assets/ASSETS.md`). Each model is scaled per axis into the object's own reported box, with a class-coloured footprint outline.

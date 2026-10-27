@@ -27,6 +27,8 @@ export const HEIGHT_MOTORCYCLE_M = 1.5;
 export const HEIGHT_BICYCLE_M = 1.7;
 /** Box and marker transparency, so overlapping objects stay readable. */
 export const OBJECT_ALPHA = 0.6;
+/** Word before the raw class confidence in the object label; the unit is unconfirmed, so no percent sign. */
+export const CONFIDENCE_LABEL = "conf";
 /** Diameter of the sphere drawn for an object with no valid box. */
 export const NO_BOX_MARKER_M = 0.6;
 

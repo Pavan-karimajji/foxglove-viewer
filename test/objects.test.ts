@@ -152,6 +152,18 @@ describe("convertObjects", () => {
     expect(t.pose.position).toEqual({ x: 9, y: -1, z: 1.9 });
   });
 
+  describe("class confidence in the label (J-D10)", () => {
+    const label = (conf?: number): string => {
+      const o = obj({ id: 3, cls: 3, vx: 1.5 });
+      if (conf !== undefined) o.attributes = { classification: 3, class_confidence: conf };
+      return entityOf(list([o])).texts[0]!.text;
+    };
+    it("confidence 0 -> label unchanged", () => expect(label(0)).toBe("PEDESTRIAN #3  5 km/h"));
+    it("confidence absent -> label unchanged", () => expect(label()).toBe("PEDESTRIAN #3  5 km/h"));
+    it("confidence 87 -> 'PEDESTRIAN conf 87  #3  5 km/h'", () => expect(label(87)).toBe("PEDESTRIAN conf 87  #3  5 km/h"));
+    it("uint32 max is shown whole, no percent sign", () => expect(label(4294967295)).toBe("PEDESTRIAN conf 4294967295  #3  5 km/h"));
+  });
+
   it("every entity has frame_id 'ego' and the timestamp passed in", () => {
     const out = convertObjects(list([obj()]), T);
     for (const e of out.entities) {

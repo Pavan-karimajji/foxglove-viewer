@@ -21,12 +21,12 @@ speed plot, both drawn by Foxglove itself.
 - [ ] **Timestamp format in seconds.** Same page, *Visualization timestamp
   format -> Seconds*, so the time bar shows `11.7` rather than a 1970 date.
 - [ ] **`demo_layout` imported and selected** (see below).
-- [ ] **Extension version 0.3.0** shown under *profile menu -> Extensions*.
+- [ ] **Extension version 0.3.1** shown under *profile menu -> Extensions*.
 
 ## Set up the demo laptop (once)
 
 1. **Install Foxglove desktop** from <https://foxglove.dev/download> and sign in.
-2. **Install the extension.** Drag `adas.foxglove-viewer-0.3.0.foxe` onto the
+2. **Install the extension.** Drag `adas.foxglove-viewer-0.3.1.foxe` onto the
    Foxglove window. Check it under *profile menu (top right) -> Extensions*:
    "ADAS Foxglove Viewer" should be listed.
    - **Updating to a new `.foxe`?** First remove the old one: *Extensions ->
@@ -84,7 +84,10 @@ values in `src/style.ts`. Rerun it and paste the output here if a colour changes
   is moving over the ground. A longer arrow means a faster object
   (0.5 m of arrow per m/s, at most 15 m). Objects slower than 0.5 m/s get no arrow.
 - **Label** above each object: class, the object's number in this recording,
-  and its speed over the ground, for example `CAR #1  88 km/h`.
+  and its speed over the ground, for example `CAR #1  88 km/h`. When the sender
+  filled the class confidence (a value above 0) it follows the class, as the raw
+  number, for example `PEDESTRIAN conf 87  #3  5 km/h`. Without it (0 or absent)
+  the label is as before.
 - Models are CC0 (public domain), by Quaternius (car, truck, SUV), reyshapes (mannequin) and AliceCassie (motorcycle); sources and checksums in `assets/ASSETS.md`.
 - Model heights: car 1.5 m, truck 3.4 m, pedestrian 1.75 m, motorcycle with rider 1.5 m, bicycle 1.7 m, other 1.6 m (box).
 - **Text above the ego car**: the ego speed in km/h.
@@ -93,6 +96,7 @@ values in `src/style.ts`. Rerun it and paste the output here if a colour changes
 
 ## Known limits
 
+- **Class confidence has no confirmed unit.** The label shows the raw number after `conf`, never a percent sign.
 - **Heights are per class, not measured.** The recordings carry no object height; length, width and heading come from the recording.
 - **Ego-fixed view only.** The ego car stays in the middle and the world moves
   past it. There is no map and no driven path.

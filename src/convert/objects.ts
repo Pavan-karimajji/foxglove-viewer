@@ -41,7 +41,7 @@ export function objectsAliases(topics: readonly { name: string; schemaName?: str
 export type DfObj = {
   kinematic?: { dist_x: number; dist_y: number; vabs_x: number; vabs_y: number } | null;
   geometry?: { length: number; width: number; orientation: number } | null;
-  attributes?: { classification: number } | null;
+  attributes?: { classification: number; class_confidence?: number } | null;
   general?: { local_id: number; maintenance_state?: number } | null;
 };
 export type DfObjList = { num_of_used_objects: number; objects: DfObj[] };
@@ -88,7 +88,11 @@ function withAlpha(c: Color, a: number): Color {
 export function objectLabel(obj: DfObj): string {
   const k = obj.kinematic;
   const kmh = Math.round(Math.hypot(k?.vabs_x ?? 0, k?.vabs_y ?? 0) * S.MPS_TO_KMH);
-  return `${className(obj.attributes?.classification ?? 0)} #${obj.general?.local_id ?? 0}  ${kmh} km/h`;
+  // class_confidence: uint32, unit unconfirmed, 0 = not filled; shown raw, never as a percent (junction plan J-D10).
+  const confidence = obj.attributes?.class_confidence ?? 0;
+  const cls = className(obj.attributes?.classification ?? 0);
+  const clsText = confidence > 0 ? `${cls} ${S.CONFIDENCE_LABEL} ${confidence} ` : cls;
+  return `${clsText} #${obj.general?.local_id ?? 0}  ${kmh} km/h`;
 }
 
 // foxglove.LineType.LINE_LOOP, by value: importing the enum would bundle all of @foxglove/schemas.
