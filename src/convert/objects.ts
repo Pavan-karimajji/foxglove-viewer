@@ -8,8 +8,11 @@
 
 import type { Color, SceneEntity, SceneUpdate, Time } from "@foxglove/schemas";
 
+import { EGO_MODEL_DATA } from "../ego_model";
 import * as S from "../style";
 import { emptyEntity, pose } from "./entity";
+
+export const EGO_MODEL_MEDIA_TYPE = "model/gltf-binary";
 
 // Decoded shape (plan section 9): snake_case fields, enums as numbers; an unset sub-message may be absent.
 export type DfObj = {
@@ -118,10 +121,14 @@ function addObject(entity: SceneEntity, obj: DfObj): void {
 export function convertObjects(msg: DfObjList, receiveTime: Time): SceneUpdate {
   const entity = emptyEntity("objects", receiveTime);
 
-  entity.cubes.push({
-    pose: pose(S.EGO_CENTRE_X_M, 0, S.OBJECT_HEIGHT_M / 2),
-    size: { x: S.EGO_LENGTH_M, y: S.EGO_WIDTH_M, z: S.OBJECT_HEIGHT_M },
-    color: withAlpha(S.COLOR_EGO, S.OBJECT_ALPHA),
+  entity.models.push({
+    pose: pose(S.EGO_CENTRE_X_M, 0, 0 - S.EGO_MODEL_NATIVE_MIN_UP_M * S.EGO_MODEL_SCALE, S.EGO_MODEL_YAW_RAD),
+    scale: { x: S.EGO_MODEL_SCALE, y: S.EGO_MODEL_SCALE, z: S.EGO_MODEL_SCALE },
+    color: S.EGO_MODEL_UNUSED_COLOR,
+    override_color: false,
+    url: "",
+    media_type: EGO_MODEL_MEDIA_TYPE,
+    data: EGO_MODEL_DATA,
   });
 
   // Never filter on maintenance_state: older recordings carry 0 everywhere (plan section 3).

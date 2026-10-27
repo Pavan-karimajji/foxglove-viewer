@@ -20,12 +20,12 @@ speed plot, both drawn by Foxglove itself.
 - [ ] **Timestamp format in seconds.** Same page, *Visualization timestamp
   format -> Seconds*, so the time bar shows `11.7` rather than a 1970 date.
 - [ ] **`demo_layout` imported and selected** (see below).
-- [ ] **Extension version 0.1.1** shown under *profile menu -> Extensions*.
+- [ ] **Extension version 0.2.0** shown under *profile menu -> Extensions*.
 
 ## Set up the demo laptop (once)
 
 1. **Install Foxglove desktop** from <https://foxglove.dev/download> and sign in.
-2. **Install the extension.** Drag `adas.foxglove-viewer-0.1.1.foxe` onto the
+2. **Install the extension.** Drag `adas.foxglove-viewer-0.2.0.foxe` onto the
    Foxglove window. Check it under *profile menu (top right) -> Extensions*:
    "ADAS Foxglove Viewer" should be listed.
    - **Updating to a new `.foxe`?** First remove the old one: *Extensions ->
@@ -50,7 +50,6 @@ ego speed over time.
 
 | What | Colour | Hex |
 |---|---|---|
-| Ego car (box) | teal | `#00d9d9` |
 | Car | blue | `#4099ff` |
 | Truck | orange | `#ff8c1a` |
 | Pedestrian | pink | `#ff40a6` |
@@ -70,6 +69,7 @@ values in `src/style.ts`. Rerun it and paste the output here if a colour changes
   (0.5 m of arrow per m/s, at most 15 m). Objects slower than 0.5 m/s get no arrow.
 - **Label** above each object: class, the object's number in this recording,
   and its speed over the ground, for example `CAR #1  88 km/h`.
+- The ego vehicle is a 3D car model (`assets/ASSETS.md`).
 - **Text above the ego car**: the ego speed in km/h.
 - A **faded lane line** was predicted, not measured, in this frame.
   A fully opaque line was measured.
@@ -79,7 +79,8 @@ values in `src/style.ts`. Rerun it and paste the output here if a colour changes
 - **Every box is 1.6 m tall.** The recordings carry no object height.
 - **Ego-fixed view only.** The ego car stays in the middle and the world moves
   past it. There is no map and no driven path.
-- The ego box size is fixed (4.5 m x 1.8 m). It is not read from the recording.
+- The ego car is drawn 4.5 m long, scaled evenly from the model, so its width and height
+  follow the model's proportions. The size is not read from the recording.
 - **Only these recordings work:** ones whose topics use the
   `adas.perception.DfObjList` (objects), `adas.perception.RoadModel` (lanes)
   and `adas.common.VehDyn` (ego speed) schemas. Topic names do not matter.

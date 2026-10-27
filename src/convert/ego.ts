@@ -21,7 +21,7 @@ export function egoSpeedText(msg: VehDyn): string {
 export function convertEgo(msg: VehDyn, receiveTime: Time): SceneUpdate {
   const entity = emptyEntity("ego_hud", receiveTime);
   entity.texts.push({
-    pose: pose(S.EGO_CENTRE_X_M, 0, S.OBJECT_HEIGHT_M + S.LABEL_OFFSET_M),
+    pose: pose(S.EGO_CENTRE_X_M, 0, S.EGO_HEIGHT_M + S.LABEL_OFFSET_M),
     billboard: true,
     font_size: S.LABEL_FONT_SIZE_PX,
     scale_invariant: true,

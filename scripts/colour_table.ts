@@ -11,7 +11,6 @@ import type { Color } from "@foxglove/schemas";
 import * as S from "../src/style";
 
 const ROWS: [string, Color, string][] = [
-  ["Ego car (box)", S.COLOR_EGO, "teal"],
   ["Car", S.COLOR_CAR, "blue"],
   ["Truck", S.COLOR_TRUCK, "orange"],
   ["Pedestrian", S.COLOR_PEDESTRIAN, "pink"],

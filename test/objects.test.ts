@@ -34,24 +34,46 @@ function entityOf(msg: DfObjList) {
   return out.entities[0]!;
 }
 
-// cubes[0] is always the ego car; objects follow.
+// The ego car is the one model in the entity; cubes are the objects.
 describe("convertObjects", () => {
-  it("empty list -> only the ego cube, at the EGO_* constants", () => {
+  it("empty list -> exactly one model (the ego car) and no cubes", () => {
     const e = entityOf(list([]));
     expect(e.id).toBe("objects");
-    expect(e.cubes).toHaveLength(1);
+    expect(e.models).toHaveLength(1);
+    expect(e.cubes).toHaveLength(0);
     expect(e.spheres).toHaveLength(0);
     expect(e.arrows).toHaveLength(0);
     expect(e.texts).toHaveLength(0);
-    expect(e.cubes[0]!.pose.position).toEqual({ x: 1.35, y: 0, z: 0.8 });
-    expect(e.cubes[0]!.size).toEqual({ x: 4.5, y: 1.8, z: 1.6 });
-    expect(e.cubes[0]!.color).toEqual({ ...S.COLOR_EGO, a: S.OBJECT_ALPHA });
+  });
+
+  it("ego model: glb media type, own colours, centre x, on the ground, scaled to EGO_LENGTH_M", () => {
+    const m = entityOf(list([])).models[0]!;
+    expect(m.media_type).toBe("model/gltf-binary");
+    expect(m.override_color).toBe(false);
+    expect(m.url).toBe("");
+    expect(m.pose.position.x).toBe(S.EGO_CENTRE_X_M);
+    expect(m.pose.position.y).toBe(0);
+    expect(m.pose.position.z).toBe(0);
+    expect(m.scale.x).toBe(S.EGO_LENGTH_M / S.EGO_MODEL_NATIVE_LENGTH_M);
+    expect(m.scale.x).toBeCloseTo(1.7647059, 6); // 4.5 / 2.55
+    expect(m.scale).toEqual({ x: m.scale.x, y: m.scale.x, z: m.scale.x }); // uniform
+    expect(m.pose.orientation.z).toBeCloseTo(0.7071, 4); // quarter turn about z: model forward -> +x
+    expect(m.pose.orientation.w).toBeCloseTo(0.7071, 4);
+    expect(m.data.length).toBeGreaterThan(100_000);
+    expect(String.fromCharCode(...m.data.slice(0, 4))).toBe("glTF");
+  });
+
+  it("the model bytes are the same Uint8Array instance on every call (decoded once)", () => {
+    const a = entityOf(list([])).models[0]!.data;
+    const b = entityOf(list([obj()])).models[0]!.data;
+    expect(b).toBe(a);
   });
 
   it("valid box -> one cube with exact position, size and orientation", () => {
     const e = entityOf(list([obj({ x: 20, y: 3.5, len: 4.8, wid: 2.1, yaw: Math.PI / 2 })]));
-    expect(e.cubes).toHaveLength(2);
-    const c = e.cubes[1]!;
+    expect(e.cubes).toHaveLength(1);
+    expect(e.models).toHaveLength(1);
+    const c = e.cubes[0]!;
     expect(c.pose.position).toEqual({ x: 20, y: 3.5, z: 0.8 });
     expect(c.size).toEqual({ x: 4.8, y: 2.1, z: 1.6 });
     expect(c.pose.orientation.z).toBeCloseTo(0.7071, 4);
@@ -61,7 +83,7 @@ describe("convertObjects", () => {
 
   it("invalid box (length 0) -> a sphere, no cube for it", () => {
     const e = entityOf(list([obj({ x: 7, y: 1, len: 0 })]));
-    expect(e.cubes).toHaveLength(1); // ego only
+    expect(e.cubes).toHaveLength(0);
     expect(e.spheres).toHaveLength(1);
     expect(e.spheres[0]!.pose.position).toEqual({ x: 7, y: 1, z: 0.3 });
     expect(e.spheres[0]!.size).toEqual({ x: 0.6, y: 0.6, z: 0.6 });
@@ -69,7 +91,7 @@ describe("convertObjects", () => {
 
   it("two-wheeler colour for BICYCLE", () => {
     const e = entityOf(list([obj({ cls: BICYCLE })]));
-    expect(e.cubes[1]!.color).toEqual({ ...S.COLOR_TWO_WHEELER, a: 0.6 });
+    expect(e.cubes[0]!.color).toEqual({ ...S.COLOR_TWO_WHEELER, a: 0.6 });
   });
 
   it("0.3 m/s -> no arrow", () => {
@@ -91,17 +113,17 @@ describe("convertObjects", () => {
 
   it("num_of_used_objects = 1 with objects.length = 3 -> exactly one object drawn", () => {
     const e = entityOf(list([obj({ x: 1 }), obj({ x: 2 }), obj({ x: 3 })], 1));
-    expect(e.cubes).toHaveLength(2);
-    expect(e.cubes[1]!.pose.position.x).toBe(1);
+    expect(e.cubes).toHaveLength(1);
+    expect(e.cubes[0]!.pose.position.x).toBe(1);
     expect(e.texts).toHaveLength(1);
   });
 
   it("num_of_used_objects larger than objects.length -> objects.length drawn", () => {
-    expect(entityOf(list([obj(), obj()], 5)).cubes).toHaveLength(3);
+    expect(entityOf(list([obj(), obj()], 5)).cubes).toHaveLength(2);
   });
 
   it("maintenance_state = 0 on every object -> all still drawn", () => {
-    expect(entityOf(list([obj({ ms: 0 }), obj({ ms: 0 }), obj({ ms: 0 })])).cubes).toHaveLength(4);
+    expect(entityOf(list([obj({ ms: 0 }), obj({ ms: 0 }), obj({ ms: 0 })])).cubes).toHaveLength(3);
   });
 
   it("label for a CAR, local_id 4, vabs (10, 0) -> 'CAR #4  36 km/h', above the box", () => {

@@ -42,8 +42,31 @@ export const LABEL_COLOR: Color = { r: 1, g: 1, b: 1, a: 1 };
 // Ego car box: display constants, to come from ego_params.yaml later (plan section 7).
 export const EGO_LENGTH_M = 4.5;
 export const EGO_WIDTH_M = 1.8;
-/** Box centre ahead of the rear axle (the ego origin). */
+/** Car centre ahead of the rear axle (the ego origin). */
 export const EGO_CENTRE_X_M = 1.35;
+
+// Ego car model (assets/ego_car.glb, assets/ASSETS.md). The EGO_MODEL_NATIVE_* values come from
+// `py -3 scripts/measure_glb.py assets/ego_car.glb` (bounding box of the model's own units, glTF is +Y up);
+// forward = glTF +Z was read off the model itself (long hood on the +Z side). Rerun after changing the model.
+/** Model length along its forward axis (glTF Z). */
+export const EGO_MODEL_NATIVE_LENGTH_M = 2.55;
+/** Model width along its lateral axis (glTF X). */
+export const EGO_MODEL_NATIVE_WIDTH_M = 1.5;
+/** Model height along its up axis (glTF Y). */
+export const EGO_MODEL_NATIVE_HEIGHT_M = 1.3;
+/** Lowest point of the model on its up axis (the wheel bottoms); 0 means its origin is on the ground. */
+export const EGO_MODEL_NATIVE_MIN_UP_M = 0;
+/** One uniform scale: the drawn model is EGO_LENGTH_M long. */
+export const EGO_MODEL_SCALE = EGO_LENGTH_M / EGO_MODEL_NATIVE_LENGTH_M;
+/** Roof height of the drawn model; the ego speed text sits above this. */
+export const EGO_HEIGHT_M = EGO_MODEL_NATIVE_HEIGHT_M * EGO_MODEL_SCALE;
+/**
+ * Yaw that turns the model's forward (glTF +Z) onto ego +x. The 3D panel's default mesh up axis
+ * ("y_up") already stands a glTF upright (+Y -> +z, +Z -> -y), so what is left is a quarter turn about z.
+ */
+export const EGO_MODEL_YAW_RAD = Math.PI / 2;
+/** Required by ModelPrimitive but ignored: override_color is false, so the model keeps its own colours. */
+export const EGO_MODEL_UNUSED_COLOR: Color = { r: 1, g: 1, b: 1, a: 1 };
 
 // One colour per class group, alpha applied separately.
 /** Passenger cars (CAR). */
@@ -56,8 +79,6 @@ export const COLOR_PEDESTRIAN: Color = { r: 1, g: 0.25, b: 0.65, a: 1 };
 export const COLOR_TWO_WHEELER: Color = { r: 0.3, g: 0.9, b: 0.3, a: 1 };
 /** Every other or unknown classification. */
 export const COLOR_OTHER: Color = { r: 0.7, g: 0.7, b: 0.7, a: 1 };
-/** The ego car. */
-export const COLOR_EGO: Color = { r: 0, g: 0.85, b: 0.85, a: 1 };
 
 // ---- Lanes (plan 4.2) ----
 

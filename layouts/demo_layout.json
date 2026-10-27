@@ -88,7 +88,7 @@
       },
       "layers": {
         "grid": {
-          "visible": true,
+          "visible": false,
           "drawBehind": false,
           "instanceId": "2fe40c19-604e-4737-aa50-3835a6940d0f",
           "layerId": "foxglove.Grid",
