@@ -77,14 +77,14 @@ disappear vanish. `lifetime` is 0 and `frame_locked` is true.
 
 | Per object | Primitive | From |
 |---|---|---|
-| Box (valid geometry) | `cubes[]`: position `(dist_x, dist_y, OBJECT_HEIGHT_M/2)`, yaw = `orientation` as quaternion `(0, 0, sin(yaw/2), cos(yaw/2))`, size `(length, width, OBJECT_HEIGHT_M)` | `kinematic`, `geometry` |
+| Box (valid geometry) | `cubes[]`: position `(dist_x, dist_y, h/2)`, yaw = `orientation` as quaternion `(0, 0, sin(yaw/2), cos(yaw/2))`, size `(length, width, h)`, `h` the per-class height (`docs/plan_junction_demo.md` J-D3; `OBJECT_HEIGHT_M` for other classes). Since 0.3.0 CAR, TRUCK, PEDESTRIAN and MOTORCYCLE draw a 3D model in this box instead (fallback ladder J-D4), unless the topic is the `objects_boxes` alias | `kinematic`, `geometry` |
 | No valid box | `spheres[]`: diameter `NO_BOX_MARKER_M = 0.6` at `(dist_x, dist_y, 0.3)` | `kinematic` |
 | Colour | By `attributes.classification`: car / truck / pedestrian / two-wheeler (MOTORCYCLE, BICYCLE) / other. Alpha `OBJECT_ALPHA = 0.6` | `attributes` |
 | Velocity arrow | `arrows[]` from the box centre, direction `atan2(vabs_y, vabs_x)`, shaft length `speed × ARROW_S_PER_MPS (0.5)`, capped at `ARROW_MAX_M = 15`; omitted below `ARROW_MIN_MPS = 0.5` | `kinematic.vabs_x/vabs_y` (absolute velocity, already in ego axes) |
 | Label | `texts[]`, billboard, above the box: `"<CLASS> #<local_id>  <km/h>"` | `classification`, `local_id`, `vabs` |
 
 Plus one **ego car** in the same entity: a `ModelPrimitive` (3D car model
-`assets/ego_car.glb`, CC0, see `assets/ASSETS.md`, bundled in the extension, decoded once)
+`assets/suv_q.glb`, CC0, see `assets/ASSETS.md`, bundled in the extension, decoded once)
 centred on `EGO_CENTRE_X_M = 1.35`, scaled per axis to `EGO_LENGTH_M = 4.5` x
 `EGO_WIDTH_M = 1.8` x `EGO_HEIGHT_TARGET_M = 1.5`. Foxglove applies the scale after its Y-up to
 Z-up conversion, so `scale.x` = width, `.y` = length, `.z` = height. These are display
@@ -143,6 +143,8 @@ runtime import, so they unit-test without the app.
 | S-5 | **Demo dry run** — on the demo laptop, from the `.foxe` and README only, with 2–3 recordings (LDW, BSD, AEB) | Works without this repo's checkout; issues fed back as §7 items |
 
 ## 7. Later (not now)
+
+- **Class models + junction demo:** planned in `docs/plan_junction_demo.md` (refines D-6).
 
 - Real object height (needs a field in `DfObj`, or a per-class default as a style decision).
 - Ego dimensions from `ego_params.yaml` instead of constants.

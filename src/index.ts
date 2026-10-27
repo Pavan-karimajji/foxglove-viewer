@@ -3,22 +3,24 @@
 // COMPONENT: FOXGLOVE_VIEWER
 /// @file
 /// @brief
-///   Extension entry point: registers the message converters, nothing else.
+///   Extension entry point: registers the message converters and the boxes-only topic alias, nothing else.
 /// @author Pavan Karimajji <Pavan.Karimajji@larsentoubro.com>
 
 import { ExtensionContext } from "@foxglove/extension";
 
 import { convertEgo, VehDyn } from "./convert/ego";
 import { convertLanes, RoadModel } from "./convert/lanes";
-import { convertObjects, DfObjList } from "./convert/objects";
+import { convertObjects, DfObjList, modeForTopic, objectsAliases } from "./convert/objects";
 
 export function activate(extensionContext: ExtensionContext): void {
   extensionContext.registerMessageConverter({
     type: "schema",
     fromSchemaName: "adas.perception.DfObjList",
     toSchemaName: "foxglove.SceneUpdate",
-    converter: (msg: DfObjList, event) => convertObjects(msg, event.receiveTime),
+    converter: (msg: DfObjList, event) => convertObjects(msg, event.receiveTime, modeForTopic(event.topic)),
   });
+  // The 3D panel has no per-entity visibility, so "as the sensor reports it" is a second topic (README).
+  extensionContext.registerTopicAliases(({ topics }) => objectsAliases(topics));
   extensionContext.registerMessageConverter({
     type: "schema",
     fromSchemaName: "adas.perception.RoadModel",

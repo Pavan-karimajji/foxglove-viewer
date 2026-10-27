@@ -3,8 +3,9 @@
 This is a small add-on (an *extension*) for the Foxglove app. Open a
 recording (`.mcap`) and it draws, in a 3D view, what the car perceived:
 
-- the **objects** around the car, as boxes with an arrow showing where each
-  one is moving and a label with its class and speed;
+- the **objects** around the car, as 3D models (car, truck, pedestrian,
+  motorcycle with rider) or boxes, each with an arrow showing where it is
+  moving and a label with its class and speed;
 - the **lane lines**;
 - the **ego car** itself, with its speed above it.
 
@@ -20,12 +21,12 @@ speed plot, both drawn by Foxglove itself.
 - [ ] **Timestamp format in seconds.** Same page, *Visualization timestamp
   format -> Seconds*, so the time bar shows `11.7` rather than a 1970 date.
 - [ ] **`demo_layout` imported and selected** (see below).
-- [ ] **Extension version 0.2.1** shown under *profile menu -> Extensions*.
+- [ ] **Extension version 0.3.0** shown under *profile menu -> Extensions*.
 
 ## Set up the demo laptop (once)
 
 1. **Install Foxglove desktop** from <https://foxglove.dev/download> and sign in.
-2. **Install the extension.** Drag `adas.foxglove-viewer-0.2.1.foxe` onto the
+2. **Install the extension.** Drag `adas.foxglove-viewer-0.3.0.foxe` onto the
    Foxglove window. Check it under *profile menu (top right) -> Extensions*:
    "ADAS Foxglove Viewer" should be listed.
    - **Updating to a new `.foxe`?** First remove the old one: *Extensions ->
@@ -48,13 +49,18 @@ ego speed over time.
 
 ## What you see
 
+| Class | Drawn as | Colour (outline, box, arrow) | Hex |
+|---|---|---|---|
+| CAR | 3D car model | blue | `#4099ff` |
+| TRUCK | 3D truck model | orange | `#ff8c1a` |
+| PEDESTRIAN | 3D mannequin model | pink | `#ff40a6` |
+| MOTORCYCLE | 3D motorcycle model with a mannequin rider | green | `#4de64d` |
+| BICYCLE | box | green | `#4de64d` |
+| Any other class (point, wide, unclassified, other vehicle, multiple, traffic light, unknown) | box | grey | `#b3b3b3` |
+| Ego car | 3D SUV model | its own colours | |
+
 | What | Colour | Hex |
 |---|---|---|
-| Car | blue | `#4099ff` |
-| Truck | orange | `#ff8c1a` |
-| Pedestrian | pink | `#ff40a6` |
-| Two-wheeler (motorcycle, bicycle) | green | `#4de64d` |
-| Any other object class | grey | `#b3b3b3` |
 | White lane marking | white | `#ffffff` |
 | Yellow lane marking | yellow | `#ffd900` |
 | Lane marking of unknown colour | light grey | `#bfbfbf` |
@@ -63,24 +69,36 @@ ego speed over time.
 *This table is printed by `npx vite-node scripts/colour_table.ts` from the
 values in `src/style.ts`. Rerun it and paste the output here if a colour changes.*
 
-- **Boxes** are see-through. A small **ball** marks an object whose size is unknown.
+- **Models and boxes.** A model keeps its own colours; the class colour is the
+  **outline** drawn on the ground around it (the box the sensor reported).
+  Boxes are see-through. A small **ball** marks an object whose size is unknown.
+- **Fallback, per object.** An object whose class has a model and whose box is
+  valid is drawn as that model. If the class has no model it is a box, and if
+  the box is not valid it is a ball. Nothing needs configuring: a sensor that
+  sends `UNCLASSIFIED` simply gets boxes.
+- **Boxes only switch.** To see everything as boxes, as the sensor reports it:
+  open the 3D panel settings (gear icon) -> *Topics*, untick `objects` and tick
+  `objects_boxes`. Swap back to return. The topic `objects_boxes` is added by
+  the extension when the recording has a topic named `objects`.
 - **Arrow**: it starts at the middle of an object and points where the object
   is moving over the ground. A longer arrow means a faster object
   (0.5 m of arrow per m/s, at most 15 m). Objects slower than 0.5 m/s get no arrow.
 - **Label** above each object: class, the object's number in this recording,
   and its speed over the ground, for example `CAR #1  88 km/h`.
-- The ego vehicle is a 3D car model (`assets/ASSETS.md`).
+- Models are CC0 (public domain), by Quaternius (car, truck, SUV), reyshapes (mannequin) and AliceCassie (motorcycle); sources and checksums in `assets/ASSETS.md`.
+- Model heights: car 1.5 m, truck 3.4 m, pedestrian 1.75 m, motorcycle with rider 1.5 m, bicycle 1.7 m, other 1.6 m (box).
 - **Text above the ego car**: the ego speed in km/h.
 - A **faded lane line** was predicted, not measured, in this frame.
   A fully opaque line was measured.
 
 ## Known limits
 
-- **Every box is 1.6 m tall.** The recordings carry no object height.
+- **Heights are per class, not measured.** The recordings carry no object height; length, width and heading come from the recording.
 - **Ego-fixed view only.** The ego car stays in the middle and the world moves
   past it. There is no map and no driven path.
-- The ego car is drawn 4.5 m long, scaled evenly from the model, so its width and height
-  follow the model's proportions. The size is not read from the recording.
+- The ego car is drawn 4.5 x 1.8 x 1.5 m, each axis scaled from the model. The size is not read from the recording.
+- The pedestrian model is a torso on a stand, and the models are low-poly. A pedestrian box is about 0.4 m across, so a
+  pedestrian is small in a top-down view; use the chase view to see it.
 - **Only these recordings work:** ones whose topics use the
   `adas.perception.DfObjList` (objects), `adas.perception.RoadModel` (lanes)
   and `adas.common.VehDyn` (ego speed) schemas. Topic names do not matter.
@@ -97,6 +115,10 @@ npm ci            # clean install of the pinned dependencies
 npm test          # unit tests of the converters
 npm run package   # writes adas.foxglove-viewer-<version>.foxe here
 ```
+
+3D models: see `assets/ASSETS.md` (CC0; Quaternius, reyshapes, AliceCassie). To change a model, run
+`py -3 scripts/measure_glb.py assets/<file>.glb`, put the numbers in `src/style.ts`, then
+`py -3 scripts/gen_models.py`.
 
 The code lives in `src/`. `src/convert/*.ts` turns each message type into
 3D shapes, and every size and colour is a named value in `src/style.ts`. The

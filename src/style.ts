@@ -16,8 +16,15 @@ export const MPS_TO_KMH = 3.6;
 
 // ---- Objects (plan 4.1) ----
 
-/** Common box height for every object; DfObj has no height field (plan D-6). */
+/** Box height of a class with no height of its own; DfObj has no height field (plan D-6). */
 export const OBJECT_HEIGHT_M = 1.6;
+// Display height per class (junction plan J-D3): a model or box is drawn this tall, and the label sits above it.
+export const HEIGHT_CAR_M = 1.5;
+export const HEIGHT_TRUCK_M = 3.4;
+export const HEIGHT_PEDESTRIAN_M = 1.75;
+/** A motorcycle with its rider. */
+export const HEIGHT_MOTORCYCLE_M = 1.5;
+export const HEIGHT_BICYCLE_M = 1.7;
 /** Box and marker transparency, so overlapping objects stay readable. */
 export const OBJECT_ALPHA = 0.6;
 /** Diameter of the sphere drawn for an object with no valid box. */
@@ -45,34 +52,102 @@ export const EGO_WIDTH_M = 1.8;
 /** Car centre ahead of the rear axle (the ego origin). */
 export const EGO_CENTRE_X_M = 1.35;
 
-// Ego car model (assets/ego_car.glb, assets/ASSETS.md). The EGO_MODEL_NATIVE_* values come from
-// `py -3 scripts/measure_glb.py assets/ego_car.glb` (bounding box of the model's own units, glTF is +Y up);
-// forward = glTF +Z was read off the model itself (long hood on the +Z side). Rerun after changing the model.
-/** Model length along its forward axis (glTF Z). */
-export const EGO_MODEL_NATIVE_LENGTH_M = 2.55;
-/** Model width along its lateral axis (glTF X). */
-export const EGO_MODEL_NATIVE_WIDTH_M = 1.5;
-/** Model height along its up axis (glTF Y). */
-export const EGO_MODEL_NATIVE_HEIGHT_M = 1.3;
-/** Lowest point of the model on its up axis (the wheel bottoms); 0 means its origin is on the ground. */
-export const EGO_MODEL_NATIVE_MIN_UP_M = 0;
-/** Middle of the model along its forward axis (glTF Z), from the same measurement: not at the origin. */
-export const EGO_MODEL_NATIVE_CENTRE_FORWARD_M = -0.025;
-/** Roof height the drawn car should have (a passenger car, not the model's own 1.3 m x length scale). */
+// ---- 3D models (assets/*.glb, assets/ASSETS.md) ----
+// Each model's native size and axes come from `py -3 scripts/measure_glb.py assets/<file>.glb` (the bounding
+// box in the model's own units; glTF is +Y up: width = X, height = Y, length = Z). Rerun it after changing a model.
+
+/** What one embedded model looks like in its own units (see the block comment above). */
+export type ModelSpec = {
+  /** Extent along glTF X. */
+  widthM: number;
+  /** Extent along glTF Y (up). */
+  heightM: number;
+  /** Extent along glTF Z. */
+  lengthM: number;
+  /** Lowest point on the up axis; 0 means the model's origin is on the ground. */
+  minUpM: number;
+  /** Middle of the model along glTF Z: not at the origin for every model. */
+  centreAlongZM: number;
+  /** +1: the model's front is glTF +Z. -1: it is -Z, so the model is turned half a turn. */
+  frontSign: 1 | -1;
+};
+
+export const MODEL_CAR: ModelSpec = {
+  widthM: 1.6384,
+  heightM: 1.1456,
+  lengthM: 3.3096,
+  minUpM: -0.0283,
+  centreAlongZM: 0.0055,
+  frontSign: 1,
+};
+export const MODEL_TRUCK: ModelSpec = {
+  widthM: 2.7093,
+  heightM: 2.884,
+  lengthM: 5.2556,
+  minUpM: 0.0007,
+  centreAlongZM: -0.4352,
+  frontSign: 1,
+};
+/** Standing, arms out and stretched wide: it is squeezed into the pedestrian's box (about 0.4 m). */
+export const MODEL_PEDESTRIAN: ModelSpec = {
+  widthM: 2.5095,
+  heightM: 9.0146,
+  lengthM: 1.8105,
+  minUpM: 0.0002,
+  centreAlongZM: 0,
+  frontSign: 1,
+};
+export const MODEL_MOTORCYCLE: ModelSpec = {
+  widthM: 0.2081,
+  heightM: 0.4876,
+  lengthM: 1.039,
+  minUpM: -0.008,
+  centreAlongZM: 0.0748,
+  // Headlight and handlebars are on the -Z side (seen from behind in Foxglove): the model is turned half a turn.
+  frontSign: -1,
+};
+/** The ego car (an SUV shape). */
+export const MODEL_EGO: ModelSpec = {
+  widthM: 2.1111,
+  heightM: 1.5279,
+  lengthM: 4.2093,
+  minUpM: -0.0181,
+  centreAlongZM: -0.0002,
+  frontSign: 1,
+};
+
+/** Roof height the drawn ego car should have. */
 export const EGO_HEIGHT_TARGET_M = 1.5;
-// One factor per axis, so the drawn car is EGO_LENGTH_M x EGO_WIDTH_M x EGO_HEIGHT_TARGET_M.
-export const EGO_MODEL_SCALE_LENGTH = EGO_LENGTH_M / EGO_MODEL_NATIVE_LENGTH_M;
-export const EGO_MODEL_SCALE_WIDTH = EGO_WIDTH_M / EGO_MODEL_NATIVE_WIDTH_M;
-export const EGO_MODEL_SCALE_HEIGHT = EGO_HEIGHT_TARGET_M / EGO_MODEL_NATIVE_HEIGHT_M;
-/** Roof height of the drawn model; the ego speed text sits above this. */
-export const EGO_HEIGHT_M = EGO_MODEL_NATIVE_HEIGHT_M * EGO_MODEL_SCALE_HEIGHT;
+/** Roof height of the drawn ego model; the ego speed text sits above this. */
+export const EGO_HEIGHT_M = EGO_HEIGHT_TARGET_M;
 /**
- * Yaw that turns the model's forward (glTF +Z) onto ego +x. The 3D panel's default mesh up axis
+ * Yaw that turns a model's front (glTF +Z) onto the box heading. The 3D panel's default mesh up axis
  * ("y_up") already stands a glTF upright (+Y -> +z, +Z -> -y), so what is left is a quarter turn about z.
  */
-export const EGO_MODEL_YAW_RAD = Math.PI / 2;
-/** Required by ModelPrimitive but ignored: override_color is false, so the model keeps its own colours. */
-export const EGO_MODEL_UNUSED_COLOR: Color = { r: 1, g: 1, b: 1, a: 1 };
+export const MODEL_YAW_RAD = Math.PI / 2;
+/** Required by ModelPrimitive but ignored while override_color is false: the model keeps its own colours. */
+export const MODEL_UNUSED_COLOR: Color = { r: 1, g: 1, b: 1, a: 1 };
+
+/** Paint every model in its class colour instead of its own colours (junction plan J-D8, option "tint"). */
+export const MODEL_TINT_ENABLED = false as boolean;
+/** Opacity of a tinted model. */
+export const MODEL_TINT_ALPHA = 0.9;
+
+// Footprint outline drawn on the ground around every object drawn as a model, in the class colour.
+export const OUTLINE_Z_M = 0.04;
+export const OUTLINE_THICKNESS_M = 0.12;
+
+// The rider on a motorcycle: the pedestrian model, standing on the seat and squeezed to a seated size.
+/** Height of the motorcycle model itself (the rider stands on it up to HEIGHT_MOTORCYCLE_M). */
+export const BIKE_HEIGHT_M = 1.0;
+/** Height where the rider model starts (its stand is hidden inside the bike body). */
+export const RIDER_SEAT_Z_M = 0.3;
+/** Rider footprint along the bike. */
+export const RIDER_LENGTH_M = 0.55;
+/** Rider footprint across the bike (never wider than the object's own box). */
+export const RIDER_WIDTH_M = 0.5;
+/** Rider centre ahead of the box centre. */
+export const RIDER_FORWARD_M = -0.1;
 
 // One colour per class group, alpha applied separately.
 /** Passenger cars (CAR). */

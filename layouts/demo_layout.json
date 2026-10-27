@@ -77,7 +77,11 @@
       "transforms": {},
       "topics": {
         "objects": {
-          "visible": true
+          "visible": true,
+          "showOutlines": false
+        },
+        "objects_boxes": {
+          "visible": false
         },
         "lanes": {
           "visible": true
