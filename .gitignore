@@ -2,3 +2,4 @@ node_modules/
 dist/
 *.foxe
 samples/*.mcap
+logs/

@@ -8,6 +8,7 @@
 
 import { ExtensionContext } from "@foxglove/extension";
 
+import { convertLanes, RoadModel } from "./convert/lanes";
 import { convertObjects, DfObjList } from "./convert/objects";
 
 export function activate(extensionContext: ExtensionContext): void {
@@ -16,5 +17,11 @@ export function activate(extensionContext: ExtensionContext): void {
     fromSchemaName: "adas.perception.DfObjList",
     toSchemaName: "foxglove.SceneUpdate",
     converter: (msg: DfObjList, event) => convertObjects(msg, event.receiveTime),
+  });
+  extensionContext.registerMessageConverter({
+    type: "schema",
+    fromSchemaName: "adas.perception.RoadModel",
+    toSchemaName: "foxglove.SceneUpdate",
+    converter: (msg: RoadModel, event) => convertLanes(msg, event.receiveTime),
   });
 }
