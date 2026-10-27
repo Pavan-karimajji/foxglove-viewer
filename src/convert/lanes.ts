@@ -6,11 +6,14 @@
 ///   adas.perception.RoadModel -> foxglove.SceneUpdate: one line strip per lane boundary (plan 4.2).
 /// @author Pavan Karimajji <Pavan.Karimajji@larsentoubro.com>
 
-import { LineType } from "@foxglove/schemas";
-import type { Color, Point3, SceneUpdate, Time } from "@foxglove/schemas";
+import type { Color, LineType, Point3, SceneUpdate, Time } from "@foxglove/schemas";
 
 import * as S from "../style";
 import { emptyEntity, pose } from "./entity";
+
+// foxglove.LineType.LINE_STRIP, by value: importing the enum would bundle all of @foxglove/schemas.
+// eslint-disable-next-line @typescript-eslint/no-unsafe-enum-assignment
+const LINE_STRIP = 0 as LineType;
 
 // adas.perception enums, by value (decoded as numbers, plan section 9).
 const KIND_ROAD_EDGE = 2;
@@ -83,7 +86,7 @@ export function convertLanes(msg: RoadModel, receiveTime: Time): SceneUpdate {
     }));
     const alpha = b.source === SOURCE_MEASURED ? S.LANE_MEASURED_ALPHA : S.LANE_UNMEASURED_ALPHA;
     entity.lines.push({
-      type: LineType.LINE_STRIP,
+      type: LINE_STRIP,
       pose: pose(0, 0, 0),
       thickness: laneThickness(b),
       scale_invariant: false,

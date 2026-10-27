@@ -13,10 +13,19 @@ speed plot, both drawn by Foxglove itself.
 
 ![Demo layout](docs/demo_layout.png)
 
+## Before a demo
+
+- [ ] **Dark theme.** *Profile menu (top right) -> Settings -> Appearance ->
+  Color scheme -> Dark.* White lane lines and labels are hard to read on the light theme.
+- [ ] **Timestamp format in seconds.** Same page, *Visualization timestamp
+  format -> Seconds*, so the time bar shows `11.7` rather than a 1970 date.
+- [ ] **`demo_layout` imported and selected** (see below).
+- [ ] **Extension version 0.1.1** shown under *profile menu -> Extensions*.
+
 ## Set up the demo laptop (once)
 
 1. **Install Foxglove desktop** from <https://foxglove.dev/download> and sign in.
-2. **Install the extension.** Drag `adas.foxglove-viewer-0.1.0.foxe` onto the
+2. **Install the extension.** Drag `adas.foxglove-viewer-0.1.1.foxe` onto the
    Foxglove window. Check it under *profile menu (top right) -> Extensions*:
    "ADAS Foxglove Viewer" should be listed.
    - **Updating to a new `.foxe`?** First remove the old one: *Extensions ->
@@ -74,8 +83,8 @@ values in `src/style.ts`. Rerun it and paste the output here if a colour changes
 - **Only these recordings work:** ones whose topics use the
   `adas.perception.DfObjList` (objects), `adas.perception.RoadModel` (lanes)
   and `adas.common.VehDyn` (ego speed) schemas. Topic names do not matter.
-- The *Problems* tab may show `Error in topic truth/actors`. That topic is not
-  used by the viewer and the error can be ignored.
+- Recordings made before 2026-10-27 may show `Error in topic truth/actors` in
+  the *Problems* tab. That topic is not used by the viewer and the error can be ignored.
 
 ## Rebuild the `.foxe` (developers)
 
