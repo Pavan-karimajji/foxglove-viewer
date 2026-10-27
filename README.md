@@ -20,13 +20,14 @@ speed plot, both drawn by Foxglove itself.
   Color scheme -> Dark.* White lane lines and labels are hard to read on the light theme.
 - [ ] **Timestamp format in seconds.** Same page, *Visualization timestamp
   format -> Seconds*, so the time bar shows `11.7` rather than a 1970 date.
-- [ ] **`demo_layout` imported and selected** (see below).
-- [ ] **Extension version 0.3.1** shown under *profile menu -> Extensions*.
+- [ ] **`demo_layout` imported and selected** (see below). It must be the 0.4.0 file with two 3D panels: delete an older `demo_layout` first (layout menu -> right-click it -> Delete), then import `layouts/demo_layout.json`.
+- [ ] **Both junction recordings are on the laptop:** `samples/junction_classes.mcap` and `samples/junction_unclassified.mcap` (not in git; copy them).
+- [ ] **Extension version 0.4.0** shown under *profile menu -> Extensions*.
 
 ## Set up the demo laptop (once)
 
 1. **Install Foxglove desktop** from <https://foxglove.dev/download> and sign in.
-2. **Install the extension.** Drag `adas.foxglove-viewer-0.3.1.foxe` onto the
+2. **Install the extension.** Drag `adas.foxglove-viewer-0.4.0.foxe` onto the
    Foxglove window. Check it under *profile menu (top right) -> Extensions*:
    "ADAS Foxglove Viewer" should be listed.
    - **Updating to a new `.foxe`?** First remove the old one: *Extensions ->
@@ -43,9 +44,52 @@ speed plot, both drawn by Foxglove itself.
 2. Make sure the layout at the top right says `demo_layout`.
 3. Press play (or drag the time bar at the bottom).
 
-The large panel on the left is the 3D view, seen from behind and above the
-ego car. The right side shows the camera video (`carla/chase_camera`) and the
-ego speed over time.
+The layout has four panels. Top left is the **chase 3D view**, seen from behind
+and above the ego car. Below it is the camera video (`carla/chase_camera`).
+The large panel on the right is a **second 3D view from high above (BEV)**, and
+below it the ego speed over time. Both 3D views follow the ego car.
+
+## Junction demo
+
+Two 30 s recordings of the same signalised four-way junction (simulated in
+CARLA, Town05): `samples/junction_classes.mcap` (true classes) and
+`samples/junction_unclassified.mcap` (every object class written as
+`UNCLASSIFIED`). The ego car approaches, stops at the red light, waits, goes on
+green and crosses. Cross traffic has cars, one truck, two motorcycles and one
+cyclist; pedestrians use the crosswalks. Open `junction_classes.mcap` first.
+
+**The BEV panel** looks down from 28 m, tilted 40 degrees so that a label floats
+above its object instead of hiding it (see Known limits), centred 8 m ahead of the ego car.
+
+**Presenter script (about 2 minutes).**
+
+1. **0:00-0:20, the picture.** "Left is the chase view, right is from above, the video is the
+   camera. The white car is us, the number above it is our speed." Press play.
+2. **0:20-0:45, waiting at red (play to about 7 s, then pause or let it run).** Point at the speed
+   text reading 0 km/h and the red light in the video. "We are stopped at the light."
+3. **0:45-1:10, the crosswalk (about 8-14 s).** In the BEV, point at the small pink footprints
+   ahead of us: pedestrians. "Each pedestrian is a class, a number and a speed. The arrow shows
+   which way they walk." Then the cross traffic: blue is a car, orange the truck, green a motorcycle
+   (with a rider) or the cyclist (a box), pink a pedestrian.
+4. **1:10-1:30, go (about 16-22 s).** "Green: we move off." The speed text and the plot rise.
+   Point at the cars passing in front. The lane lines vanish (about 17-23 s): "no lane lines
+   inside the junction. That is by design, the recording has none there."
+5. **1:30-1:45, flip to cuboids (pause at about 10 s).** In **each** 3D panel: gear icon ->
+   *Topics* -> untick `objects`, tick `objects_boxes`. "This is what the sensor reports: boxes,
+   no model." Swap back the same way (tick `objects`, untick `objects_boxes`).
+6. **1:45-2:00, unknown classes.** Open `junction_unclassified.mcap` (*Dashboard -> Open
+   local file(s)*, or drag it in), same layout. "Same traffic, but the sensor did not tell us
+   the class. Every object is a grey box labelled UNCLASSIFIED: the fallback is automatic,
+   nothing to set."
+
+**Honest limits to say out loud.**
+
+- Lane lines end at the junction on purpose (about 17-23 s, and the last 0.15 s).
+- Only objects the front sensor sector lists are drawn; nothing beside or behind the ego car.
+- Pedestrians are small: a 0.4 m footprint. The model is a torso on a stand (no head), and
+  the motorcycle rider is the same torso. In the BEV they show as small pink footprints with a torso; say so
+  and point at them.
+- The scene is simulated; the traffic lights and crosswalks are visible only in the video, not drawn in 3D.
 
 ## What you see
 
@@ -102,7 +146,8 @@ values in `src/style.ts`. Rerun it and paste the output here if a colour changes
   past it. There is no map and no driven path.
 - The ego car is drawn 4.5 x 1.8 x 1.5 m, each axis scaled from the model. The size is not read from the recording.
 - The pedestrian model is a torso on a stand, and the models are low-poly. A pedestrian box is about 0.4 m across, so a
-  pedestrian is small in a top-down view; use the chase view to see it.
+  pedestrian is small in a top-down view. In a straight-down orthographic view the text label sits exactly on top of
+  the pedestrian and hides it, so the BEV is tilted (perspective, 40 degrees).
 - **Only these recordings work:** ones whose topics use the
   `adas.perception.DfObjList` (objects), `adas.perception.RoadModel` (lanes)
   and `adas.common.VehDyn` (ego speed) schemas. Topic names do not matter.

@@ -135,6 +135,85 @@
           "label": "ego speed (m/s)"
         }
       ]
+    },
+    "3D!4bev9k2": {
+      "cameraState": {
+        "distance": 28.0,
+        "perspective": true,
+        "phi": 40.0,
+        "target": [
+          0,
+          0,
+          0
+        ],
+        "targetOffset": [
+          8.0,
+          0,
+          0
+        ],
+        "targetOrientation": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "thetaOffset": 90,
+        "fovy": 45,
+        "near": 0.5,
+        "far": 5000
+      },
+      "followMode": "follow-pose",
+      "followTf": "ego",
+      "scene": {},
+      "transforms": {},
+      "topics": {
+        "objects": {
+          "visible": true,
+          "showOutlines": false
+        },
+        "objects_boxes": {
+          "visible": false
+        },
+        "lanes": {
+          "visible": true
+        },
+        "egoDyn": {
+          "visible": true
+        }
+      },
+      "layers": {
+        "grid": {
+          "visible": false,
+          "drawBehind": false,
+          "instanceId": "7b3c1d52-5e0a-4c51-9a3e-0b6f1f6d2a11",
+          "layerId": "foxglove.Grid",
+          "size": 10,
+          "divisions": 10,
+          "lineWidth": 1,
+          "color": "#248eff",
+          "position": [
+            0,
+            0,
+            0
+          ],
+          "rotation": [
+            0,
+            0,
+            0
+          ]
+        }
+      },
+      "publish": {
+        "type": "point",
+        "poseTopic": "/move_base_simple/goal",
+        "pointTopic": "/clicked_point",
+        "poseEstimateTopic": "/initialpose",
+        "poseEstimateXDeviation": 0.5,
+        "poseEstimateYDeviation": 0.5,
+        "poseEstimateThetaDeviation": 0.26179939
+      },
+      "synchronize": false,
+      "imageMode": {}
     }
   },
   "globalVariables": {},
@@ -144,13 +223,18 @@
   },
   "layout": {
     "direction": "row",
-    "first": "3D!1desa7b",
-    "second": {
+    "first": {
       "direction": "column",
-      "first": "Image!15ksywx",
-      "second": "Plot!2davmr3",
+      "first": "3D!1desa7b",
+      "second": "Image!15ksywx",
       "splitPercentage": 55
     },
-    "splitPercentage": 65
+    "second": {
+      "direction": "column",
+      "first": "3D!4bev9k2",
+      "second": "Plot!2davmr3",
+      "splitPercentage": 85
+    },
+    "splitPercentage": 45
   }
 }

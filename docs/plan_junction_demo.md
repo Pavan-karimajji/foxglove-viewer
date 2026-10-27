@@ -374,3 +374,59 @@ bike whose body is not solid; a BICYCLE rider would have the same issue plus the
 0.38 m is only about 12 px at the top-view zoom used here; Foxglove auto-updated to 3.4.2 during the
 spike, so the app is now 3.4.2 (the earlier steps ran on the previous version). Foxglove was restarted
 with the debug port, so a normal launch has none.
+
+### J-3 survey (2026-10-28, CARLA 0.9.16, Town05)
+
+Facts read from the code and measured on the running server; the choices are the last list.
+
+**How actors move today.** In both schema-3 producers every road user is teleported: `set_simulate_physics(False)`
+and `set_transform` once per tick (synchronous mode, 0.05 s). The recorded position is the scripted one, not read
+back. A pedestrian is moved the same way, so it slides (§2). Three kinds place road users: `Actor` (a straight line
+from a location's reference pose; `lane_through_junction` is the straight chord from a crossing's entry to its exit),
+`route_traffic.RouteActor` (a lane offset and a distance relative to the ego's own lane route) and, in a lane-route
+scenario, nothing else.
+
+**Route kinds through a junction.** None follows a path of its own. The ego's lane route (`lane_geometry.build_route`)
+walks `next()` and takes the candidate that keeps the heading, so it goes straight through a junction. A `RouteActor`
+exists only relative to that route, so it cannot cross it or turn off it. `lane_through_junction` is a straight chord:
+no curve, no turn. The map does give the connection lanes (`Junction.get_waypoints`): at Town05 junction 1427 there
+are 16 (8 straight, 4 left, 4 right), and walking `previous()`/`next()` further than about 55 m crosses the
+neighbouring junction (90 m away) and, at its connection lanes, can leave the road's own line.
+
+**Lanes inside a junction.** Measured on the ego's route through junction 1427 (`ego_lines` at 6 m steps). Before and
+after it four lines are reported (painted). Inside it the route's lane table holds the connection lane and one
+neighbour (the map gives no lane on the left there), and the producer still reports three lines: a `ROAD_EDGE` on the
+left of the lane, the lane's right boundary as `PAINTED_MARKING`, and a `ROAD_EDGE` beyond the neighbour. A junction has
+no painted lanes, so those are curves of the map's connection geometry, not of anything on the road.
+
+**Sensor coverage.** A scenario names a preset in `sim/sensor_models/` (`ground_truth_ideal`). That file declares
+`object_range_m: 100` and `num_object_slots: 50`, but only the legacy bridge reads them; the schema-3 producers read
+neither, and the lane-route producer lists every road user at any distance. The one declared filter is
+`raycast_occlusion` (the staged producer only, from the two rear corner poses; its own comment says no front pose
+exists, Q22). No project file calibrates a front sensor, so there is nothing to reference.
+
+**Walking pedestrians, measured** (three walkers on one crosswalk, synchronous 20 Hz, 1.4 m/s):
+
+| Option | Result |
+|---|---|
+| Teleport, physics off (today) | Slides, no walk cycle (§2). |
+| Walker controller alone (`WalkerControl(direction, speed)`) | Walks, legs animate. The server moves it exactly `speed * dt` (0.07 m) per tick; its position is the physics' own, so it needs feedback to stay on a path and differs from run to run by the spawn settle (about 0.06 m measured). |
+| Controller `speed` plus `set_transform` each tick | Walks, legs animate in the camera image. Position is whatever the script sets. Putting the walker `speed * dt` behind its scripted point first makes the controller's step end exactly on it. |
+| AI controller (`go_to_location`, navigation mesh) | Not tried: its route and speed are the navigation system's (seeded), not a scripted path, and a crosswalk crossing could not be timed against a light. |
+
+The walker's origin is its body centre: `get_location().z` read 0.95 m on level ground, so a teleport to ground level
+buries it (the first try, z = 0, drew nothing).
+
+**Decisions.**
+- Walkers: the third row. The recorded and drawn positions are a pure function of time (reproducible, no physics in the
+  result) and the legs animate from the controller's speed.
+- Paths: a new route kind, `route: {kind: path}`, a polyline in world metres (lane connections and crosswalks written
+  by a probe from the map into the location's `paths:`), used by turning and cross traffic and by pedestrians.
+- Signals: a scenario `signals:` timeline per signal head of the location, every head listed, set and frozen by the
+  producer.
+- Lanes: `ego.lines_end_at_junction` ends the lines where the route enters a junction and sends nothing inside, rather
+  than the connection geometry.
+- Coverage: a `coverage:` sector (front, 130 degrees, 80 m, marked assumed like the front poses) in a new preset,
+  `front_coverage_assumed`; an object outside it is not in the list. Other presets have none and list everything.
+- Place: Town05 junction 1427 (four lights, four crosswalks, 78 m of straight road each side), over Town10HD whose
+  four-light junction has crosswalks on two arms.

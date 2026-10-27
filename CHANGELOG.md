@@ -2,6 +2,12 @@
 
 `npm run package` refuses to build a `.foxe` without this file.
 
+## 0.4.0
+
+- `layouts/demo_layout.json` has a second 3D panel, a high-above BEV (perspective, tilted 40 degrees, 28 m, 8 m ahead of the ego car), beside the chase view and the camera. Both follow `ego`, grid hidden, `objects_boxes` hidden by default.
+- Junction demo recordings (`samples/junction_classes.mcap`, `samples/junction_unclassified.mcap`, not in git) and a 2-minute presenter script in the README.
+- Extension code unchanged.
+
 ## 0.3.1
 
 - The object label shows the class confidence when the sender filled it (above 0), as the raw number: `PEDESTRIAN conf 87  #3  5 km/h`. Its unit is unconfirmed, so there is no percent sign. A 0 or absent confidence leaves the label as before.
