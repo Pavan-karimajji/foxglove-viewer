@@ -134,10 +134,10 @@ runtime import, so they unit-test without the app.
 | Step | Lands | Done when |
 |---|---|---|
 | S-0 | **Prerequisites (human)** — install Node.js LTS (not on this machine today); choose **Foxglove desktop or Lichtblick** and confirm the licence fits customer demos; later, create the remote repo and `git submodule add` it | `node --version` works; the app is chosen |
-| S-1 | **Scaffold + spike** — official extension template; a minimal `DfObjList` converter drawing one cube per object; local install; open the sample mcap | Moving boxes visible in the 3D panel with display frame `ego`; §9 findings filled in |
-| S-2 | **Objects** — full §4.1 mapping + ego car + unit tests | Tests pass; boxes, arrows and labels look right on the sample mcap |
-| S-3 | **Lanes** — §4.2 mapping + unit tests (+ optional dashed) | Tests pass; lanes line up under the objects |
-| S-4 | **Ego HUD, layout, packaging** — §4.3, `layouts/demo_layout.json` (3D main + Image + Plot of `egoDyn.vx`), `npm run package` → `.foxe`, `README.md` | A fresh install from the `.foxe` + layout shows the full demo |
+| S-1 | **Scaffold + spike** — official extension template; a minimal `DfObjList` converter drawing one cube per object; local install; open the sample mcap | Moving boxes visible in the 3D panel with display frame `ego`; §9 findings filled in. **Done:** template, vitest runner, spike converter, §9 findings. |
+| S-2 | **Objects** — full §4.1 mapping + ego car + unit tests | Tests pass; boxes, arrows and labels look right on the sample mcap. **Done:** `style.ts`, `convert/{quat,entity,objects}.ts`, 14 tests. |
+| S-3 | **Lanes** — §4.2 mapping + unit tests (+ optional dashed) | Tests pass; lanes line up under the objects. **Done:** `convert/lanes.ts` plus 11 tests; dashed rendering deferred (§7). |
+| S-4 | **Ego HUD, layout, packaging** — §4.3, `layouts/demo_layout.json` (3D main + Image + Plot of `egoDyn.longitudinal.velocity`), `npm run package` → `.foxe`, `README.md` | A fresh install from the `.foxe` + layout shows the full demo. **Done:** `convert/ego.ts`, demo layout, `adas.foxglove-viewer-0.1.0.foxe`, presenter README. |
 | S-5 | **Demo dry run** — on the demo laptop, from the `.foxe` and README only, with 2–3 recordings (LDW, BSD, AEB) | Works without this repo's checkout; issues fed back as §7 items |
 
 ## 7. Later (not now)
@@ -148,6 +148,12 @@ runtime import, so they unit-test without the app.
 - Real data streams: confirm they use the same schemas (§3). If not, add one converter per new schema.
 - Fixed-slot object lists: if real data pads `objects[]`, revisit the `num_of_used_objects` rule in §3.
 - World view (needs ego pose).
+- Dashed lane lines (`MARKER_DASHED`). `RoadModel` carries no dash phase, so
+  dashes drawn from `x_start_m` would stay fixed to the ego car and appear to
+  slide along the road. That would show something the recording does not say (D-4).
+- Light theme: white lane lines and white label text are hard to read on
+  Foxglove's light background. Decide whether the demo uses the dark theme or
+  the colours change.
 
 ## 8. Prompts (Sonnet 5.5, medium effort)
 
@@ -277,3 +283,15 @@ Observed in Foxglove desktop on `bsd_passby_dv16.mcap` (2026-10-27).
   `create-foxglove-extension` 1.3.2, so it was removed and `npm test` runs vitest.
 - Installing a `.foxe` from a script: Settings -> Extensions has a hidden
   `<input type=file accept=".foxe">`. Dropping a file on the window also works on the player page.
+- After reinstalling a `.foxe`, an open player keeps running the old code until
+  the window reloads (`Ctrl+R`).
+- Ego speed field path (S-4): `VehDyn.longitudinal.velocity` (m/s), from
+  `modules/interfaces/proto/VehSigProvider__Outputs/veh_dyn.proto` (package
+  `adas.common`). There is no `vx` field. The Plot panel path is
+  `egoDyn.longitudinal.velocity`.
+- 3D camera for the demo layout: distance 30, target offset X 10, theta 90,
+  phi 60, follow mode "Pose", display frame `ego`. Theta 90 puts the camera
+  behind the car looking along +x, and theta 0 looks from the right side.
+- Text primitives use `scale_invariant: true`, so `LABEL_FONT_SIZE_PX` is in screen pixels.
+- `npm run package` names the file `<publisher>.<name>-<version>.foxe`, so
+  `publisher: "adas"` gives `adas.foxglove-viewer-0.1.0.foxe` with no extra setting.
