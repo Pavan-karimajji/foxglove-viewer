@@ -2,6 +2,13 @@
 
 `npm run package` refuses to build a `.foxe` without this file.
 
+## 0.5.0
+
+- Labels moved to their own topic `objects_labels` (off by default in the demo layout); `objects` and `objects_boxes` draw no text. A label is short: `CAR`, `TRK`, `PED`, `MOTO`, `BIKE`, `OBJ`, the speed only for a moving object (the arrow's 0.5 m/s limit), the confidence as before; no `#id` (the id is in the entity's `metadata`, visible when an object is selected). Label font 14 -> 12 px.
+- Pedestrians are drawn with a static CC0 person model (iPoly3D "Fitness Character") instead of the mannequin; the model is centred across its heading too (`centreAcrossXM`).
+- MOTORCYCLE and BICYCLE are class-coloured boxes (`BOX_ONLY_CLASSES`); the cartoon motorcycle, the rider composition and the mannequin are removed from the bundle (`assets/ASSETS.md`).
+- Demo layout: the chase view looks ahead with the ego in the lower third; the BEV is straight down (orthographic, ego +x up, ego near the bottom, about 50 m ahead); "Show outlines" is off on the object topics.
+
 ## 0.4.0
 
 - `layouts/demo_layout.json` has a second 3D panel, a high-above BEV (perspective, tilted 40 degrees, 28 m, 8 m ahead of the ego car), beside the chase view and the camera. Both follow `ego`, grid hidden, `objects_boxes` hidden by default.

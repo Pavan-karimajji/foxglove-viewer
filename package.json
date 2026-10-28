@@ -4,7 +4,7 @@
   "description": "Shows perceived objects and lane lines from mcap recordings in the 3D panel.",
   "publisher": "adas",
   "homepage": "",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "license": "UNLICENSED",
   "main": "./dist/extension.js",
   "keywords": [],

@@ -1,6 +1,6 @@
 # Assets
 
-Five 3D models, all CC0 1.0 Universal (public domain, <https://creativecommons.org/publicdomain/zero/1.0/>),
+Four 3D models, all CC0 1.0 Universal (public domain, <https://creativecommons.org/publicdomain/zero/1.0/>),
 none with a brand name or logo, all static (no skeleton: Foxglove draws skinned models wrongly). Every file
 is byte-identical to the download. The models are listed on <https://poly.pizza>; kenney.nl, itch.io and
 quaternius.com refused automated downloads from this machine (HTTP 403).
@@ -12,9 +12,17 @@ comes from `scripts/measure_glb.py` and is recorded in `src/style.ts`.
 |---|---|---|---|---|---|---|
 | `car_q.glb` ("Car", used for CAR) | <https://poly.pizza/m/unqqkULtRU> | Quaternius | CC0 1.0 | 2026-10-28 | `e5f5fa41c4434383b20287725c0e9d757cbd0f059eedc342ec265d32a195fe39` | none |
 | `truck_q.glb` ("Truck", used for TRUCK) | <https://poly.pizza/m/cXw6oiFtZ8> | Quaternius | CC0 1.0 | 2026-10-28 | `a5d107b5b06f8ca2d8d7e66ae6309f2e1a25cac577c5db8ebb661b3f0ca5ed8f` | none |
-| `mannequin_rs.glb` ("Mannequin", used for PEDESTRIAN and the motorcycle rider) | <https://poly.pizza/m/tYwjQJvcFX> | reyshapes | CC0 1.0 | 2026-10-28 | `7d053b5b2625443497a9c92db1c68e8f6b89897ffb80bfc27c427353c41e4f2a` | none |
-| `moto_alice.glb` ("Cartoony Purple Motorcycle", used for MOTORCYCLE) | <https://poly.pizza/m/j20srJUjpB> | AliceCassie | CC0 1.0 | 2026-10-28 | `86219f3bd3c14d50f822def3ce080db11b3d0f45123db5f3b9ace4d7b44a8124` | none |
+| `fitness_ip.glb` ("Fitness Character", used for PEDESTRIAN) | <https://poly.pizza/m/eMOTyGEAxj> | iPoly3D | CC0 1.0 | 2026-10-28 | `cf6fbf32074aa1711fee89139b3bcc2f283afb091cec720d326d064f7c45fdbc` | none |
 | `suv_q.glb` ("SUV", the ego car) | <https://poly.pizza/m/xsMtZhBkxL> | Quaternius | CC0 1.0 | 2026-10-28 | `1a9ce2bba813dca5005abab09715b01b8b5f4a9c48d7260463afdfeb876aa8b6` | none |
 
-Crediting the authors is not required by CC0; the README does it anyway. BICYCLE has no model (no CC0
-bicycle was found), so it is drawn as a box.
+Crediting the authors is not required by CC0; the README does it anyway.
+
+## Removed from the bundle (0.5.0)
+
+- `moto_alice.glb` ("Cartoony Purple Motorcycle", AliceCassie, <https://poly.pizza/m/j20srJUjpB>, sha256
+  `86219f3bd3c14d50f822def3ce080db11b3d0f45123db5f3b9ace4d7b44a8124`): a cartoon that did not match the other
+  models, and the rider composition built on it. MOTORCYCLE and BICYCLE are drawn as class-coloured boxes
+  (`BOX_ONLY_CLASSES` in `src/style.ts`) until a matching model exists.
+- `mannequin_rs.glb` ("Mannequin", reyshapes, <https://poly.pizza/m/tYwjQJvcFX>, sha256
+  `7d053b5b2625443497a9c92db1c68e8f6b89897ffb80bfc27c427353c41e4f2a`): a headless torso, replaced by the
+  Fitness Character for pedestrians.

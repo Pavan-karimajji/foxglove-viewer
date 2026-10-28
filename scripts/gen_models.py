@@ -21,8 +21,7 @@ CHUNK = 100  # short lines: one 250 KB line makes eslint and the build several t
 MODELS = {
     "CAR": "car_q.glb",
     "TRUCK": "truck_q.glb",
-    "PEDESTRIAN": "mannequin_rs.glb",
-    "MOTORCYCLE": "moto_alice.glb",
+    "PEDESTRIAN": "fitness_ip.glb",
     "EGO": "suv_q.glb",
 }
 

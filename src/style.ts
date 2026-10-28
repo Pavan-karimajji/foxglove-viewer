@@ -22,7 +22,6 @@ export const OBJECT_HEIGHT_M = 1.6;
 export const HEIGHT_CAR_M = 1.5;
 export const HEIGHT_TRUCK_M = 3.4;
 export const HEIGHT_PEDESTRIAN_M = 1.75;
-/** A motorcycle with its rider. */
 export const HEIGHT_MOTORCYCLE_M = 1.5;
 export const HEIGHT_BICYCLE_M = 1.7;
 /** Box and marker transparency, so overlapping objects stay readable. */
@@ -44,8 +43,17 @@ export const ARROW_HEAD_DIAMETER_M = 0.45;
 
 /** Gap between the top of a box (or marker) and its label. */
 export const LABEL_OFFSET_M = 0.4;
-/** Label size in screen pixels (labels are scale invariant). */
-export const LABEL_FONT_SIZE_PX = 14;
+/** Label size in screen pixels (labels are scale invariant); small, so a crowded junction stays readable. */
+export const LABEL_FONT_SIZE_PX = 12;
+/** Short class names in object labels; every class not listed here is OBJ. */
+export const CLASS_ABBREVIATIONS: Readonly<Record<string, string>> = {
+  CAR: "CAR",
+  TRUCK: "TRK",
+  PEDESTRIAN: "PED",
+  MOTORCYCLE: "MOTO",
+  BICYCLE: "BIKE",
+};
+export const CLASS_ABBREVIATION_OTHER = "OBJ";
 export const LABEL_COLOR: Color = { r: 1, g: 1, b: 1, a: 1 };
 
 // Ego car box: display constants, to come from ego_params.yaml later (plan section 7).
@@ -70,6 +78,8 @@ export type ModelSpec = {
   minUpM: number;
   /** Middle of the model along glTF Z: not at the origin for every model. */
   centreAlongZM: number;
+  /** Middle of the model along glTF X (sideways), 0 when centred. */
+  centreAcrossXM?: number;
   /** +1: the model's front is glTF +Z. -1: it is -Z, so the model is turned half a turn. */
   frontSign: 1 | -1;
 };
@@ -90,23 +100,15 @@ export const MODEL_TRUCK: ModelSpec = {
   centreAlongZM: -0.4352,
   frontSign: 1,
 };
-/** Standing, arms out and stretched wide: it is squeezed into the pedestrian's box (about 0.4 m). */
+/** Static CC0 person (assets/fitness_ip.glb), front +Z, arms slightly out; its origin is at one side (centreAcrossXM). */
 export const MODEL_PEDESTRIAN: ModelSpec = {
-  widthM: 2.5095,
-  heightM: 9.0146,
-  lengthM: 1.8105,
-  minUpM: 0.0002,
-  centreAlongZM: 0,
+  widthM: 1.334,
+  heightM: 1.86,
+  lengthM: 0.2926,
+  minUpM: 0,
+  centreAlongZM: -0.0088,
+  centreAcrossXM: 1.5053,
   frontSign: 1,
-};
-export const MODEL_MOTORCYCLE: ModelSpec = {
-  widthM: 0.2081,
-  heightM: 0.4876,
-  lengthM: 1.039,
-  minUpM: -0.008,
-  centreAlongZM: 0.0748,
-  // Headlight and handlebars are on the -Z side (seen from behind in Foxglove): the model is turned half a turn.
-  frontSign: -1,
 };
 /** The ego car (an SUV shape). */
 export const MODEL_EGO: ModelSpec = {
@@ -139,17 +141,13 @@ export const MODEL_TINT_ALPHA = 0.9;
 export const OUTLINE_Z_M = 0.04;
 export const OUTLINE_THICKNESS_M = 0.12;
 
-// The rider on a motorcycle: the pedestrian model, standing on the seat and squeezed to a seated size.
-/** Height of the motorcycle model itself (the rider stands on it up to HEIGHT_MOTORCYCLE_M). */
-export const BIKE_HEIGHT_M = 1.0;
-/** Height where the rider model starts (its stand is hidden inside the bike body). */
-export const RIDER_SEAT_Z_M = 0.3;
-/** Rider footprint along the bike. */
-export const RIDER_LENGTH_M = 0.55;
-/** Rider footprint across the bike (never wider than the object's own box). */
-export const RIDER_WIDTH_M = 0.5;
-/** Rider centre ahead of the box centre. */
-export const RIDER_FORWARD_M = -0.1;
+/**
+ * Classes drawn as a class-coloured box even though the data says what they are: no matching model exists yet
+ * (the only licence-free motorcycle was a cartoon and there is no licence-free bicycle). To bring a model back:
+ * add it in assets/ and scripts/gen_models.py, give it a ModelSpec and a case in modelSpec() (convert/objects.ts),
+ * and take the class out of this set.
+ */
+export const BOX_ONLY_CLASSES: ReadonlySet<string> = new Set(["MOTORCYCLE", "BICYCLE"]);
 
 // One colour per class group, alpha applied separately.
 /** Passenger cars (CAR). */

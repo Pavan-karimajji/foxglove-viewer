@@ -15,25 +15,32 @@ import { emptyEntity, pose } from "./entity";
 
 export const MODEL_MEDIA_TYPE = "model/gltf-binary";
 
-/** The alias topic that shows every object as a box; the 3D panel lists it beside the real objects topic. */
+/** The alias topics the 3D panel lists beside the real objects topic: one draws boxes, one draws labels only. */
 export const OBJECTS_TOPIC = "objects";
 export const OBJECTS_BOXES_TOPIC = "objects_boxes";
+export const OBJECTS_LABELS_TOPIC = "objects_labels";
 const OBJECTS_SCHEMA = "adas.perception.DfObjList";
 
-/** "dressed": a 3D model per class that has one. "boxes": every object with a box is a cuboid. */
-export type ObjectsMode = "dressed" | "boxes";
+/**
+ * "dressed": a 3D model per class that has one, no labels. "boxes": every object with a box is a cuboid, no
+ * labels. "labels": only the labels (the 3D panel cannot hide parts of one topic, so they are a topic of their own).
+ */
+export type ObjectsMode = "dressed" | "boxes" | "labels";
 
 export function modeForTopic(topic: string): ObjectsMode {
-  return topic === OBJECTS_BOXES_TOPIC ? "boxes" : "dressed";
+  if (topic === OBJECTS_BOXES_TOPIC) {
+    return "boxes";
+  }
+  return topic === OBJECTS_LABELS_TOPIC ? "labels" : "dressed";
 }
 
-/** The boxes alias exists only when the recording has an objects topic of the right schema. */
+/** The aliases exist only when the recording has an objects topic of the right schema. */
 export function objectsAliases(topics: readonly { name: string; schemaName?: string }[]): {
   name: string;
   sourceTopicName: string;
 }[] {
   return topics.some((t) => t.name === OBJECTS_TOPIC && t.schemaName === OBJECTS_SCHEMA)
-    ? [{ name: OBJECTS_BOXES_TOPIC, sourceTopicName: OBJECTS_TOPIC }]
+    ? [OBJECTS_BOXES_TOPIC, OBJECTS_LABELS_TOPIC].map((name) => ({ name, sourceTopicName: OBJECTS_TOPIC }))
     : [];
 }
 
@@ -85,14 +92,39 @@ function withAlpha(c: Color, a: number): Color {
   return { r: c.r, g: c.g, b: c.b, a };
 }
 
+export function classAbbreviation(classification: number): string {
+  return S.CLASS_ABBREVIATIONS[className(classification)] ?? S.CLASS_ABBREVIATION_OTHER;
+}
+
+function speedMps(obj: DfObj): number {
+  return Math.hypot(obj.kinematic?.vabs_x ?? 0, obj.kinematic?.vabs_y ?? 0);
+}
+
+/** Short label: class, the confidence when filled, the speed only for a moving object (the arrow's own threshold). */
 export function objectLabel(obj: DfObj): string {
-  const k = obj.kinematic;
-  const kmh = Math.round(Math.hypot(k?.vabs_x ?? 0, k?.vabs_y ?? 0) * S.MPS_TO_KMH);
+  const parts = [classAbbreviation(obj.attributes?.classification ?? 0)];
   // class_confidence: uint32, unit unconfirmed, 0 = not filled; shown raw, never as a percent (junction plan J-D10).
   const confidence = obj.attributes?.class_confidence ?? 0;
-  const cls = className(obj.attributes?.classification ?? 0);
-  const clsText = confidence > 0 ? `${cls} ${S.CONFIDENCE_LABEL} ${confidence} ` : cls;
-  return `${clsText} #${obj.general?.local_id ?? 0}  ${kmh} km/h`;
+  if (confidence > 0) {
+    parts.push(`${S.CONFIDENCE_LABEL} ${confidence}`);
+  }
+  const speed = speedMps(obj);
+  if (speed >= S.ARROW_MIN_MPS) {
+    parts.push(`${Math.round(speed * S.MPS_TO_KMH)} km/h`);
+  }
+  return parts.join(" ");
+}
+
+/** What clicking the entity shows for one object: the id the label no longer carries, and the full values. */
+export function objectMetadata(obj: DfObj): { key: string; value: string } {
+  const classification = obj.attributes?.classification ?? 0;
+  const id = obj.general?.local_id ?? 0;
+  const confidence = obj.attributes?.class_confidence ?? 0;
+  const kmh = Math.round(speedMps(obj) * S.MPS_TO_KMH);
+  return {
+    key: `#${id} ${classAbbreviation(classification)}`,
+    value: `${className(classification)}, id ${id}, ${kmh} km/h${confidence > 0 ? `, ${S.CONFIDENCE_LABEL} ${confidence}` : ""}`,
+  };
 }
 
 // foxglove.LineType.LINE_LOOP, by value: importing the enum would bundle all of @foxglove/schemas.
@@ -117,8 +149,11 @@ export function classHeightM(classification: number): number {
   }
 }
 
-// The classes that have a 3D model. BICYCLE has none (no suitable licence-free model), so it is a cuboid.
+// The classes that have a 3D model. MOTORCYCLE and BICYCLE are box-only (S.BOX_ONLY_CLASSES): no matching model yet.
 function modelSpec(classification: number): { id: ModelId; spec: S.ModelSpec } | undefined {
+  if (S.BOX_ONLY_CLASSES.has(className(classification))) {
+    return undefined;
+  }
   switch (className(classification)) {
     case "CAR":
       return { id: "CAR", spec: S.MODEL_CAR };
@@ -126,8 +161,6 @@ function modelSpec(classification: number): { id: ModelId; spec: S.ModelSpec } |
       return { id: "TRUCK", spec: S.MODEL_TRUCK };
     case "PEDESTRIAN":
       return { id: "PEDESTRIAN", spec: S.MODEL_PEDESTRIAN };
-    case "MOTORCYCLE":
-      return { id: "MOTORCYCLE", spec: S.MODEL_MOTORCYCLE };
     default:
       return undefined;
   }
@@ -148,12 +181,14 @@ function modelPrimitive(
   const scaleX = box.width / spec.widthM;
   const scaleY = box.length / spec.lengthM;
   const scaleZ = box.height / spec.heightM;
-  // The model's middle is not at its origin: move the origin back by that much, along the heading.
+  // The model's middle is not at its origin: move the origin back by that much, along and across the heading
+  // (a model turned half a turn has its sideways axis flipped too).
   const originShift = spec.frontSign * spec.centreAlongZM * scaleY;
+  const acrossShift = spec.frontSign * (spec.centreAcrossXM ?? 0) * scaleX;
   return {
     pose: pose(
-      box.x - originShift * Math.cos(box.heading),
-      box.y - originShift * Math.sin(box.heading),
+      box.x - originShift * Math.cos(box.heading) + acrossShift * Math.sin(box.heading),
+      box.y - originShift * Math.sin(box.heading) - acrossShift * Math.cos(box.heading),
       box.baseZ - spec.minUpM * scaleZ,
       box.heading + S.MODEL_YAW_RAD + (spec.frontSign < 0 ? Math.PI : 0),
     ),
@@ -182,26 +217,6 @@ function addOutline(entity: SceneEntity, x: number, y: number, yaw: number, leng
   });
 }
 
-// Rider on a motorcycle: the pedestrian model standing on the seat (a motorcyclist is a bike with a person on it).
-function riderPrimitive(x: number, y: number, g: { length: number; width: number; orientation: number }, tint: Color | undefined): ModelPrimitive {
-  const c = Math.cos(g.orientation);
-  const s = Math.sin(g.orientation);
-  return modelPrimitive(
-    "PEDESTRIAN",
-    S.MODEL_PEDESTRIAN,
-    {
-      x: x + S.RIDER_FORWARD_M * c,
-      y: y + S.RIDER_FORWARD_M * s,
-      heading: g.orientation,
-      length: Math.min(S.RIDER_LENGTH_M, g.length),
-      width: Math.min(S.RIDER_WIDTH_M, g.width),
-      height: S.HEIGHT_MOTORCYCLE_M - S.RIDER_SEAT_Z_M,
-      baseZ: S.RIDER_SEAT_Z_M,
-    },
-    tint,
-  );
-}
-
 function addObject(entity: SceneEntity, obj: DfObj, mode: ObjectsMode): void {
   const x = obj.kinematic?.dist_x ?? 0;
   const y = obj.kinematic?.dist_y ?? 0;
@@ -213,10 +228,8 @@ function addObject(entity: SceneEntity, obj: DfObj, mode: ObjectsMode): void {
   const height = classHeightM(classification);
 
   let centreZ: number;
-  let topZ: number;
   if (g != undefined && g.length > 0 && g.width > 0) {
     centreZ = height / 2;
-    topZ = height;
     const model = mode === "dressed" ? modelSpec(classification) : undefined;
     if (model == undefined) {
       entity.cubes.push({
@@ -226,23 +239,18 @@ function addObject(entity: SceneEntity, obj: DfObj, mode: ObjectsMode): void {
       });
     } else {
       const tint = S.MODEL_TINT_ENABLED ? withAlpha(color, S.MODEL_TINT_ALPHA) : undefined;
-      const bikeHeight = model.id === "MOTORCYCLE" ? S.BIKE_HEIGHT_M : height;
       entity.models.push(
         modelPrimitive(
           model.id,
           model.spec,
-          { x, y, heading: g.orientation, length: g.length, width: g.width, height: bikeHeight, baseZ: 0 },
+          { x, y, heading: g.orientation, length: g.length, width: g.width, height, baseZ: 0 },
           tint,
         ),
       );
-      if (model.id === "MOTORCYCLE") {
-        entity.models.push(riderPrimitive(x, y, g, tint));
-      }
       addOutline(entity, x, y, g.orientation, g.length, g.width, color);
     }
   } else {
     centreZ = S.NO_BOX_MARKER_M / 2;
-    topZ = S.NO_BOX_MARKER_M;
     entity.spheres.push({
       pose: pose(x, y, centreZ),
       size: { x: S.NO_BOX_MARKER_M, y: S.NO_BOX_MARKER_M, z: S.NO_BOX_MARKER_M },
@@ -261,9 +269,14 @@ function addObject(entity: SceneEntity, obj: DfObj, mode: ObjectsMode): void {
       color,
     });
   }
+}
 
+function addLabel(entity: SceneEntity, obj: DfObj): void {
+  const g = obj.geometry;
+  const validBox = g != undefined && g.length > 0 && g.width > 0;
+  const topZ = validBox ? classHeightM(obj.attributes?.classification ?? 0) : S.NO_BOX_MARKER_M;
   entity.texts.push({
-    pose: pose(x, y, topZ + S.LABEL_OFFSET_M),
+    pose: pose(obj.kinematic?.dist_x ?? 0, obj.kinematic?.dist_y ?? 0, topZ + S.LABEL_OFFSET_M),
     billboard: true,
     font_size: S.LABEL_FONT_SIZE_PX,
     scale_invariant: true,
@@ -273,6 +286,17 @@ function addObject(entity: SceneEntity, obj: DfObj, mode: ObjectsMode): void {
 }
 
 export function convertObjects(msg: DfObjList, receiveTime: Time, mode: ObjectsMode = "dressed"): SceneUpdate {
+  // Never filter on maintenance_state: older recordings carry 0 everywhere (plan section 3).
+  const used = msg.objects.slice(0, Math.min(msg.num_of_used_objects, msg.objects.length));
+
+  if (mode === "labels") {
+    const labels = emptyEntity("object_labels", receiveTime);
+    for (const obj of used) {
+      addLabel(labels, obj);
+    }
+    return { deletions: [], entities: [labels] };
+  }
+
   const entity = emptyEntity("objects", receiveTime);
 
   // The ego car, in both modes: it is not an object the sensor reported.
@@ -293,10 +317,9 @@ export function convertObjects(msg: DfObjList, receiveTime: Time, mode: ObjectsM
     ),
   );
 
-  // Never filter on maintenance_state: older recordings carry 0 everywhere (plan section 3).
-  const count = Math.min(msg.num_of_used_objects, msg.objects.length);
-  for (const obj of msg.objects.slice(0, count)) {
+  for (const obj of used) {
     addObject(entity, obj, mode);
+    entity.metadata.push(objectMetadata(obj));
   }
 
   return { deletions: [], entities: [entity] };

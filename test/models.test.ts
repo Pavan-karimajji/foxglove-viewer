@@ -169,9 +169,18 @@ describe("per-class heights (J-D3)", () => {
 
   it("the label sits LABEL_OFFSET_M above the class height", () => {
     for (const cls of [CAR, TRUCK, PEDESTRIAN, MOTORCYCLE, BICYCLE, 7]) {
-      const t = entityOf([obj(cls)]).texts[0]!;
+      const t = entityOf([obj(cls)], "labels").texts[0]!;
       expect(t.pose.position.z, `class ${cls}`).toBeCloseTo(classHeightM(cls) + 0.4, 9);
     }
+  });
+
+  it("PEDESTRIAN origin is also shifted across the heading (its origin is at one side of the figure)", () => {
+    const across = S.MODEL_PEDESTRIAN.centreAcrossXM!;
+    const sx = 0.4 / S.MODEL_PEDESTRIAN.widthM;
+    const m0 = entityOf([obj(PEDESTRIAN, { x: 10, y: 5, len: 0.4, wid: 0.4, yaw: 0 })]).models[1]!;
+    expect(m0.pose.position.y).toBeCloseTo(5 - across * sx, 9); // heading +x: the model's X axis points left (+y)
+    const m1 = entityOf([obj(PEDESTRIAN, { x: 10, y: 5, len: 0.4, wid: 0.4, yaw: Math.PI / 2 })]).models[1]!;
+    expect(m1.pose.position.x).toBeCloseTo(10 + across * sx, 9); // heading +y: it points to -x
   });
 
   it("PEDESTRIAN model is 1.75 m tall", () => {
@@ -180,27 +189,25 @@ describe("per-class heights (J-D3)", () => {
   });
 });
 
-describe("motorcycle and rider", () => {
-  it("MOTORCYCLE emits exactly two models (bike, rider); PEDESTRIAN and CAR one", () => {
-    expect(entityOf([obj(MOTORCYCLE, { len: 2.2, wid: 0.9 })]).models).toHaveLength(3);
+describe("two-wheelers are class-coloured cuboids (BOX_ONLY_CLASSES)", () => {
+  it("the set names exactly MOTORCYCLE and BICYCLE", () => {
+    expect([...S.BOX_ONLY_CLASSES].sort()).toEqual(["BICYCLE", "MOTORCYCLE"]);
+  });
+
+  it("MOTORCYCLE and BICYCLE: no model, no outline, one cuboid in the box at the class height", () => {
+    for (const [cls, height] of [[MOTORCYCLE, 1.5], [BICYCLE, 1.7]] as const) {
+      const e = entityOf([obj(cls, { len: 2.2, wid: 0.9 })]);
+      expect(e.models, `class ${cls}`).toHaveLength(1); // the ego car only
+      expect(e.lines, `class ${cls}`).toHaveLength(0);
+      expect(e.cubes, `class ${cls}`).toHaveLength(1);
+      expect(e.cubes[0]!.size, `class ${cls}`).toEqual({ x: 2.2, y: 0.9, z: height });
+      expect(e.cubes[0]!.color, `class ${cls}`).toEqual({ ...S.COLOR_TWO_WHEELER, a: S.OBJECT_ALPHA });
+    }
+  });
+
+  it("PEDESTRIAN and CAR still get one model each", () => {
     expect(entityOf([obj(PEDESTRIAN, { len: 0.4, wid: 0.4 })]).models).toHaveLength(2);
     expect(entityOf([obj(CAR)]).models).toHaveLength(2);
-  });
-
-  it("the bike fills the box; the rider stands on the seat, inside the box, topping out at the class height", () => {
-    const [, bike, rider] = entityOf([obj(MOTORCYCLE, { len: 2.2, wid: 0.9 })]).models;
-    expect(S.MODEL_MOTORCYCLE.widthM * bike!.scale.x).toBeCloseTo(0.9, 9);
-    expect(S.MODEL_MOTORCYCLE.lengthM * bike!.scale.y).toBeCloseTo(2.2, 9);
-    expect(S.MODEL_MOTORCYCLE.heightM * bike!.scale.z).toBeCloseTo(S.BIKE_HEIGHT_M, 9);
-    expect(S.MODEL_PEDESTRIAN.widthM * rider!.scale.x).toBeLessThanOrEqual(0.9);
-    expect(S.MODEL_PEDESTRIAN.lengthM * rider!.scale.y).toBeLessThanOrEqual(2.2);
-    expect(S.MODEL_PEDESTRIAN.heightM * rider!.scale.z + S.RIDER_SEAT_Z_M).toBeCloseTo(1.5, 9);
-  });
-
-  it("the rider never exceeds a narrow box", () => {
-    const rider = entityOf([obj(MOTORCYCLE, { len: 0.3, wid: 0.2 })]).models[2]!;
-    expect(S.MODEL_PEDESTRIAN.widthM * rider.scale.x).toBeCloseTo(0.2, 9);
-    expect(S.MODEL_PEDESTRIAN.lengthM * rider.scale.y).toBeCloseTo(0.3, 9);
   });
 });
 
@@ -208,15 +215,13 @@ describe("models are decoded once", () => {
   it("each class hands out the same Uint8Array instance on every call", () => {
     const first = entityOf([obj(CAR), obj(TRUCK), obj(PEDESTRIAN), obj(MOTORCYCLE)]).models;
     const second = entityOf([obj(CAR), obj(TRUCK), obj(PEDESTRIAN), obj(MOTORCYCLE)]).models;
-    expect(first).toHaveLength(6); // ego, car, truck, pedestrian, bike, rider
+    expect(first).toHaveLength(4); // ego, car, truck, pedestrian (the motorcycle is a cuboid)
     for (let i = 0; i < first.length; i++) {
       expect(second[i]!.data).toBe(first[i]!.data);
     }
     expect(first[1]!.data).toBe(MODEL_DATA.CAR);
     expect(first[2]!.data).toBe(MODEL_DATA.TRUCK);
     expect(first[3]!.data).toBe(MODEL_DATA.PEDESTRIAN);
-    expect(first[4]!.data).toBe(MODEL_DATA.MOTORCYCLE);
-    expect(first[5]!.data).toBe(MODEL_DATA.PEDESTRIAN); // the rider
     expect(first[0]!.data).toBe(MODEL_DATA.EGO);
   });
 });
@@ -239,15 +244,19 @@ describe("embedded files", () => {
 });
 
 describe("boxes-only switch (J-D5)", () => {
-  it("topic -> mode: objects_boxes is boxes, anything else is dressed", () => {
+  it("topic -> mode: objects_boxes is boxes, objects_labels is labels, anything else is dressed", () => {
     expect(modeForTopic("objects_boxes")).toBe("boxes");
+    expect(modeForTopic("objects_labels")).toBe("labels");
     expect(modeForTopic("objects")).toBe("dressed");
     expect(modeForTopic("")).toBe("dressed");
   });
 
   it("the alias exists only for an objects topic of schema DfObjList", () => {
     const ok = [{ name: "objects", schemaName: "adas.perception.DfObjList" }];
-    expect(objectsAliases(ok)).toEqual([{ name: "objects_boxes", sourceTopicName: "objects" }]);
+    expect(objectsAliases(ok)).toEqual([
+      { name: "objects_boxes", sourceTopicName: "objects" },
+      { name: "objects_labels", sourceTopicName: "objects" },
+    ]);
     expect(objectsAliases([])).toEqual([]);
     expect(objectsAliases([{ name: "objects", schemaName: "adas.perception.RoadModel" }])).toEqual([]);
     expect(objectsAliases([{ name: "other", schemaName: "adas.perception.DfObjList" }])).toEqual([]);
@@ -265,11 +274,13 @@ describe("boxes-only switch (J-D5)", () => {
     expect(e.cubes.map((c) => c.size.z)).toEqual([1.5, 3.4, 1.75, 1.5, 1.7, 1.6]);
   });
 
-  it("dressed and boxes keep the same label and arrow", () => {
+  it("dressed and boxes keep the same arrow and metadata, and neither draws a label", () => {
     const o = { ...obj(CAR), kinematic: { dist_x: 10, dist_y: 0, vabs_x: 10, vabs_y: 0 } };
     const a = entityOf([o], "dressed");
     const b = entityOf([o], "boxes");
-    expect(b.texts).toEqual(a.texts);
     expect(b.arrows).toEqual(a.arrows);
+    expect(b.metadata).toEqual(a.metadata);
+    expect(a.texts).toHaveLength(0);
+    expect(b.texts).toHaveLength(0);
   });
 });

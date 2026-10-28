@@ -47,16 +47,16 @@
     },
     "3D!1desa7b": {
       "cameraState": {
-        "distance": 30,
+        "distance": 28.0,
         "perspective": true,
-        "phi": 60,
+        "phi": 62.0,
         "target": [
           0,
           0,
           0
         ],
         "targetOffset": [
-          10,
+          9.0,
           0,
           0
         ],
@@ -81,7 +81,12 @@
           "showOutlines": false
         },
         "objects_boxes": {
-          "visible": false
+          "visible": false,
+          "showOutlines": false
+        },
+        "objects_labels": {
+          "visible": false,
+          "showOutlines": false
         },
         "lanes": {
           "visible": true
@@ -138,16 +143,16 @@
     },
     "3D!4bev9k2": {
       "cameraState": {
-        "distance": 28.0,
-        "perspective": true,
-        "phi": 40.0,
+        "distance": 62.0,
+        "perspective": false,
+        "phi": 0,
         "target": [
           0,
           0,
           0
         ],
         "targetOffset": [
-          8.0,
+          22.0,
           0,
           0
         ],
@@ -172,7 +177,12 @@
           "showOutlines": false
         },
         "objects_boxes": {
-          "visible": false
+          "visible": false,
+          "showOutlines": false
+        },
+        "objects_labels": {
+          "visible": false,
+          "showOutlines": false
         },
         "lanes": {
           "visible": true

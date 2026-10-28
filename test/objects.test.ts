@@ -133,7 +133,8 @@ describe("convertObjects", () => {
     const e = entityOf(list([obj({ x: 1 }), obj({ x: 2 }), obj({ x: 3 })], 1), "boxes");
     expect(e.cubes).toHaveLength(1);
     expect(e.cubes[0]!.pose.position.x).toBe(1);
-    expect(e.texts).toHaveLength(1);
+    expect(e.metadata).toHaveLength(1);
+    expect(entityOf(list([obj({ x: 1 }), obj({ x: 2 }), obj({ x: 3 })], 1), "labels").texts).toHaveLength(1);
   });
 
   it("num_of_used_objects larger than objects.length -> objects.length drawn", () => {
@@ -144,24 +145,84 @@ describe("convertObjects", () => {
     expect(entityOf(list([obj({ ms: 0 }), obj({ ms: 0 }), obj({ ms: 0 })]), "boxes").cubes).toHaveLength(3);
   });
 
-  it("label for a CAR, local_id 4, vabs (10, 0) -> 'CAR #4  36 km/h', above the box", () => {
-    const e = entityOf(list([obj({ id: 4, vx: 10, x: 9, y: -1 })]));
-    const t = e.texts[0]!;
-    expect(t.text).toBe("CAR #4  36 km/h");
-    expect(t.billboard).toBe(true);
-    expect(t.pose.position).toEqual({ x: 9, y: -1, z: 1.9 });
+  it("the objects topic draws no labels at all", () => {
+    for (const mode of ["dressed", "boxes"] as const) {
+      expect(entityOf(list([obj({ vx: 10 }), obj({ cls: 3, len: 0 })]), mode).texts, mode).toHaveLength(0);
+    }
   });
 
-  describe("class confidence in the label (J-D10)", () => {
-    const label = (conf?: number): string => {
-      const o = obj({ id: 3, cls: 3, vx: 1.5 });
-      if (conf !== undefined) o.attributes = { classification: 3, class_confidence: conf };
-      return entityOf(list([o])).texts[0]!.text;
-    };
-    it("confidence 0 -> label unchanged", () => expect(label(0)).toBe("PEDESTRIAN #3  5 km/h"));
-    it("confidence absent -> label unchanged", () => expect(label()).toBe("PEDESTRIAN #3  5 km/h"));
-    it("confidence 87 -> 'PEDESTRIAN conf 87  #3  5 km/h'", () => expect(label(87)).toBe("PEDESTRIAN conf 87  #3  5 km/h"));
-    it("uint32 max is shown whole, no percent sign", () => expect(label(4294967295)).toBe("PEDESTRIAN conf 4294967295  #3  5 km/h"));
+  describe("the labels topic (objects_labels)", () => {
+    const labelsOf = (objects: DfObj[]) => entityOf(list(objects), "labels");
+    const label = (o: DfObj): string => labelsOf([o]).texts[0]!.text;
+
+    it("holds only texts: no ego model, no models, cuboids, spheres, arrows or lines", () => {
+      const e = labelsOf([obj({ vx: 10 }), obj({ cls: 3 }), obj({ len: 0 })]);
+      expect(e.id).toBe("object_labels");
+      expect(e.texts).toHaveLength(3);
+      for (const k of ["models", "cubes", "spheres", "arrows", "lines", "cylinders", "triangles"] as const) {
+        expect(e[k], k).toHaveLength(0);
+      }
+      expect(e.frame_id).toBe("ego");
+    });
+
+    it("a moving CAR -> 'CAR 36 km/h', billboard, 0.4 m above the box top", () => {
+      const t = labelsOf([obj({ id: 4, vx: 10, x: 9, y: -1 })]).texts[0]!;
+      expect(t.text).toBe("CAR 36 km/h");
+      expect(t.billboard).toBe(true);
+      expect(t.font_size).toBe(S.LABEL_FONT_SIZE_PX);
+      expect(t.pose.position).toEqual({ x: 9, y: -1, z: 1.9 });
+    });
+
+    it("no '#id' in the label", () => expect(label(obj({ id: 17, vx: 10 }))).not.toContain("#"));
+
+    it("a standing object has no speed; the threshold is the arrow's own ARROW_MIN_MPS", () => {
+      expect(label(obj({ vx: 0 }))).toBe("CAR");
+      expect(label(obj({ vx: 0.3 }))).toBe("CAR");
+      expect(S.ARROW_MIN_MPS).toBe(0.5);
+      expect(label(obj({ vx: 0.5 }))).toBe("CAR 2 km/h");
+      expect(entityOf(list([obj({ vx: 0.5 })])).arrows).toHaveLength(1);
+      expect(entityOf(list([obj({ vx: 0.49 })])).arrows).toHaveLength(0);
+      expect(label(obj({ vx: 0.49 }))).toBe("CAR");
+    });
+
+    it("class abbreviations; every other class (and an unknown value) is OBJ", () => {
+      const names = [[1, "CAR"], [2, "TRK"], [3, "PED"], [4, "MOTO"], [5, "BIKE"], [0, "OBJ"], [6, "OBJ"], [7, "OBJ"], [8, "OBJ"], [9, "OBJ"], [10, "OBJ"], [42, "OBJ"]] as const;
+      for (const [cls, text] of names) {
+        expect(label(obj({ cls })), `class ${cls}`).toBe(text);
+      }
+    });
+
+    it("an object with no valid box is labelled above the sphere marker", () => {
+      expect(labelsOf([obj({ len: 0, x: 7, y: 1 })]).texts[0]!.pose.position.z).toBeCloseTo(0.6 + 0.4, 9);
+    });
+
+    describe("class confidence (J-D10)", () => {
+      const withConf = (conf?: number): string => {
+        const o = obj({ id: 3, cls: 3, vx: 1.5 });
+        if (conf !== undefined) o.attributes = { classification: 3, class_confidence: conf };
+        return label(o);
+      };
+      it("confidence 0 -> label unchanged", () => expect(withConf(0)).toBe("PED 5 km/h"));
+      it("confidence absent -> label unchanged", () => expect(withConf()).toBe("PED 5 km/h"));
+      it("confidence 87 -> 'PED conf 87 5 km/h'", () => expect(withConf(87)).toBe("PED conf 87 5 km/h"));
+      it("uint32 max is shown whole, no percent sign", () => expect(withConf(4294967295)).toBe("PED conf 4294967295 5 km/h"));
+      it("a standing object with a confidence -> 'PED conf 87'", () => {
+        const o = obj({ cls: 3 });
+        o.attributes = { classification: 3, class_confidence: 87 };
+        expect(label(o)).toBe("PED conf 87");
+      });
+    });
+  });
+
+  it("the id moves to the entity metadata: one entry per object, with the full class name and speed", () => {
+    const o = obj({ id: 4, vx: 10 });
+    const q = obj({ id: 9, cls: 3, vx: 0 });
+    q.attributes = { classification: 3, class_confidence: 87 };
+    const e = entityOf(list([o, q]));
+    expect(e.metadata).toEqual([
+      { key: "#4 CAR", value: "CAR, id 4, 36 km/h" },
+      { key: "#9 PED", value: "PEDESTRIAN, id 9, 0 km/h, conf 87" },
+    ]);
   });
 
   it("every entity has frame_id 'ego' and the timestamp passed in", () => {

@@ -24,6 +24,5 @@ export const MODEL_DATA: Record<ModelId, Uint8Array> = {
   CAR: decodeBase64(MODEL_BASE64.CAR),
   TRUCK: decodeBase64(MODEL_BASE64.TRUCK),
   PEDESTRIAN: decodeBase64(MODEL_BASE64.PEDESTRIAN),
-  MOTORCYCLE: decodeBase64(MODEL_BASE64.MOTORCYCLE),
   EGO: decodeBase64(MODEL_BASE64.EGO),
 };
