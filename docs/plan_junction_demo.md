@@ -57,6 +57,12 @@ Checked 2026-10-27.
 | J-D10 | **Label shows the class confidence when the sender filled it** (`> 0`), for example `PEDESTRIAN 87%  #3  5 km/h`. The unit is checked against the radar software's documentation before showing a `%`; until confirmed, the raw number is shown. | Radar classification is less certain than camera classification, and the team will ask. 0 is what CARLA writes and means "not filled" here. |
 | J-D11 | **Two recordings of the junction scene:** one with true classes, one with every class written as `UNCLASSIFIED` (a producer flag, recorded in the mcap metadata). | Shows the fallback with the same traffic, side by side or one after the other. |
 | J-D12 | **The demo layout gets a second 3D panel, a top-down BEV**, beside today's chase view, both following `ego`. | A junction reads best from above; the chase view sells the 3D. |
+| J-D13 | **Road context is its own topic, `map/context`, drawn under the objects, and the presenter can switch it off** (untick it in the 3D panel, like `objects_labels`). Real sensor recordings do not carry it, so it is simply absent there. Added 2026-10-28. | In the BEV, pedestrians read as "people crossing" only when a crosswalk is under them. It comes from the map, not from a sensor, so it must be separable from what the sensors reported (`plan.md` D-4). |
+| J-D14 | **Content: road surface, sidewalks, crosswalks, stop lines, road edges, junction area. No lane markings.** | Lane markings already come from `RoadModel` (the `lanes` topic, perception). Two sources for one kind of line would disagree and the viewer could not say which is true. |
+| J-D15 | **Schema `scene_context.Map`, JSON with a real JSON schema** (like `truth/actors`, never `{}`), every item `{kind, polyline}` or `{kind, triangles}`, metres, in the `map` frame, plus `source: "carla_map"`. The **producer triangulates** surfaces; the viewer only styles by `kind`. Not a protobuf in `interfaces`: it is demo tooling, never a component port or an ECU output. | The viewer still computes nothing (`plan.md` D-4): triangulation is geometry and belongs to the producer. A neutral name lets an HD map fill the same topic later; `source` says where it came from. |
+| J-D16 | **Static geometry plus one transform per tick.** The map is sent in frame `map`, repeated once per second (so a seek always finds one); a `foxglove.FrameTransform` per tick on topic `map/frame` gives `map` in `ego` (parent `ego`, child `map`). The 3D panel keeps `ego` as its display frame. | Re-sending the whole junction in ego coordinates every tick would add tens of MB per recording. One small transform per tick does the same job. Both frames connect through that transform, which is exactly what the earlier failed attempt lacked (`plan.md` D-5). |
+| J-D17 | **The transform uses the same ego pose and the same CARLA→ego conversion the producer already applies to objects** (rear-axle origin, CARLA's left-handed Y flipped). Never a second conversion. | If map and objects use two conversions, cars drift off the road by the difference, and the demo shows a wrong picture that looks right. Cars on the road and pedestrians on crosswalks become the alignment check. |
+| J-D18 | **Style: dark asphalt surface, slightly lighter sidewalks, white crosswalk fill, white stop lines, grey road edges**, all named constants in `style.ts`, drawn just below `z = 0` in that order so nothing flickers against the lanes and objects. Demo layout: `map/context` **on**. | Readable on the dark theme, quiet enough that objects stay the focus. |
 
 ## 4. The junction scene (CARLA, `df` repo)
 
@@ -96,6 +102,8 @@ The producer and scenarios live in `modules/df/tools/carla` and
 | J-3 | Junction scenario + signal timeline + walking pedestrians + classes-off flag | df | Two mcaps produced; the camera shows walking pedestrians and correct signals; df gate green |
 | J-4 | Junction recordings into `samples/`, BEV + chase demo layout, README demo script | foxglove-viewer | Layout imported; screenshots of both recordings in `docs/` |
 | J-5 | Demo dry run on the laptop, same as `plan.md` S-5 | — | Run end to end offline |
+| J-6 | Road context in the producer: `map/context` + `map/frame` (J-D13..J-D17) | df | Both junction mcaps regenerated with the two topics; pure-geometry tests green; df gate green |
+| J-7 | Road context in the viewer: converter, style, demo layout (J-D15, J-D18) | foxglove-viewer | BEV screenshots: cars on the road, pedestrians on crosswalks/sidewalks; switches off cleanly; playback unchanged |
 
 J-1/J-2 and J-3 can run in parallel (different repos); J-4 needs both.
 
@@ -248,11 +256,88 @@ unclassified recording). CHANGELOG, version bump. Gate once with seconds; commit
 Sonnet co-author line.
 ```
 
+### J-6 — Road context in the producer (df)
+
+```
+Read modules/foxglove-viewer/docs/plan_junction_demo.md J-D13..J-D18 and §9 (J-3 survey),
+then modules/df/tools/carla/carla_producer.py (how objects are converted to the ego frame:
+Pose, rear_axle_xy, to_ego_frame; how truth/actors registers its JSON schema) and
+mcap_recorder.py. Work in modules/df on feature/junction-demo-scene. Do not push.
+
+1. New pure module tools/carla/scene_context.py (no `carla` import, file header per
+   R-STYLE-1): plain dataclasses for the items (kind, polyline or triangles, metres, map
+   frame); triangulation of a lane-section strip (two edge polylines -> triangles); a
+   closed polygon -> triangles for crosswalks (CARLA gives convex quads; refuse a
+   non-convex one with a clear error rather than mis-triangulate); the map->ego
+   FrameTransform from the ego pose, built FROM THE SAME conversion the producer uses for
+   objects (J-D17), never re-derived; to_json() matching the JSON schema exactly.
+   Unit tests in scripts/tests/: triangulation counts and winding, a quad -> 2 triangles,
+   non-convex refused, transform round trip (a point placed at an object's world position
+   lands at that object's dist_x/dist_y), schema validates every emitted message.
+2. CARLA extraction (in the producer, behind a flag --map-context, default off): once per
+   run, within a radius of the scene (a named constant, enough to cover the junction and
+   its approaches): driving-lane surfaces and sidewalks from map waypoints (lane type,
+   lane width, both edges), road edges (outer edges of the drivable area), crosswalks
+   (map.get_crosswalks()), stop lines (traffic lights' stop waypoints, one short line
+   across each lane), the junction area. Remember CARLA is left-handed (Y right): convert
+   with the producer's existing helpers only.
+3. Recording: register schema `scene_context.Map` (encoding jsonschema, a real schema, not
+   `{}`), topic `map/context`, written at t0 and then once per second (same content); topic
+   `map/frame`, schema foxglove.FrameTransform (the same encoding the camera image uses for
+   its foxglove schema), one per tick, parent `ego`, child `map`. Record --map-context in
+   the mcap metadata.
+4. Regenerate both junction recordings with --map-context (CARLA -vulkan -windowed, wait
+   ~45 s; carla_producer.py ... --camera --map-context, NOT --record; with and without
+   --classes-unclassified). Report each topic's message count and the size added.
+5. Alignment check WITHOUT the viewer: a small script (logs/, not committed) that reads one
+   recording and, at t = 5, 10, 21 s, reports for every CAR/TRUCK whether its centre lies
+   on a road-surface triangle, and for every PEDESTRIAN whether it lies on a sidewalk,
+   crosswalk or road triangle, after applying map/frame. Expect all true; investigate any
+   false before committing.
+6. df unit gate once with seconds (python -m pytest -q scripts/tests; python
+   scripts/check_invariants.py from the superproject root). Commit
+   "feat(carla): road context topic (map surface, crosswalks, stop lines) for the demo"
+   ending with Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>
+End with: commit, mcap paths and sizes, alignment-check result, anything unsure.
+```
+
+### J-7 — Road context in the viewer
+
+```
+Read docs/plan_junction_demo.md J-D13..J-D18 and the J-6 commit message. Work in
+modules/foxglove-viewer on feature/foxglove-viewer. Do not push.
+
+1. src/convert/map_context.ts: converter fromSchemaName `scene_context.Map` ->
+   foxglove.SceneUpdate. One entity per kind, frame_id "map", frame_locked true,
+   lifetime 0. triangles -> TriangleListPrimitive, polyline -> LinePrimitive. Style by
+   kind only, colours and z offsets as named constants in style.ts (J-D18). Unknown kind:
+   skip it and count it in the entity metadata, never guess a style. Register it in
+   src/index.ts. No topic-name checks (plan.md D-3).
+2. Tests: one per kind; unknown kind skipped; frame_id is "map"; z order is surface <
+   sidewalk < crosswalk < stop line/edge < 0; a message with no items gives an empty
+   entity, not an error. Plant-and-revert one wrong value.
+3. Demo layout: map/context on in both 3D panels; nothing else changes. Check the
+   3D panel's display frame stays `ego` (map/frame connects the two).
+4. In Foxglove with both junction recordings (copied to samples/ from the J-6 run):
+   BEV + chase screenshots at t = 5, 10, 21 s (docs/j7_*.png): cars on the road,
+   pedestrians on crosswalks/sidewalks, the perception lane lines on the map's lanes,
+   nothing flickering. Seek backwards and forwards: the map stays. Untick map/context:
+   the view is exactly the 0.5.0 view. Playback numbers as in J-5 (max gap, gaps > 40 ms).
+5. README: one line in the legend for each kind, and in the presenter script "the map is
+   shown for orientation; it comes from the map, not from the radar". Known limits: real
+   recordings have no map topic. CHANGELOG 0.6.0, version 0.6.0.
+6. Gate once with seconds: npm ci, lint, test, package. Commit
+   "feat(viewer): road context layer (surface, crosswalks, stop lines) under the objects"
+   ending with Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>
+End with: commit, tests, .foxe size, screenshot paths, playback numbers, anything unsure.
+```
+
 ## 8. Later (not now)
 
-- Traffic-light state and stop lines as a separate, clearly labelled **scene context** topic
-  (from CARLA ground truth or a map), off for real sensor data (J-D7).
-- Road surface and crosswalks as a ground mesh from the map, same "scene context" rule.
+- **Custom model set, parked 2026-10-28:** a commissioned, company-owned set (car, SUV, truck,
+  bus, pedestrian, motorcyclist, cyclist) in one style, replacing the CC0 models and the
+  two-wheeler cuboids (`BOX_ONLY_CLASSES`). Code change is only the asset swap.
+- Traffic-light state as part of the road context topic (J-D13), off for real sensor data (J-D7).
 - Real object height, once `DfObj` carries it (replaces J-D3).
 - Animated pedestrian models in the 3D view (needs a walk phase the data does not carry).
 
